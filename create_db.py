@@ -1,14 +1,20 @@
 import argparse
 import os
 import sqlite3
+import configparser
 
 parser = argparse.ArgumentParser(description='Create ObsDataRest database.')
-parser.add_argument('-n', action="store", dest="db_name", help="Database file name", default="ObsDataRest.db")
-parser.add_argument('-p', action="store", dest="db_path", help="Path where to create database", default=".database")
+# parser.add_argument('-n', action="store", dest="db_name", help="Database file name", default="ObsDataRest.db")
+# parser.add_argument('-p', action="store", dest="db_path", help="Path where to create database", default=".database")
+
 parser.add_argument('-d', action="store_true", dest="db_drop", help="Delete existing DB", default=False)
 args = parser.parse_args()
 
-db_file = os.path.join(args.db_path, args.db_name)
+config = configparser.ConfigParser()
+config.read("ObsDataRest.cfg")
+
+db_file = config["database"]["path"]
+db_path = os.path.dirname(db_file)
 
 if args.db_drop:
     try:
@@ -16,8 +22,8 @@ if args.db_drop:
     except:
         pass
 
-if not os.path.exists(args.db_path):
-    os.makedirs(args.db_path)
+if not os.path.exists(db_path):
+    os.makedirs(db_path)
 
 conn = sqlite3.connect(db_file)
 
