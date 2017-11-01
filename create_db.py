@@ -25,11 +25,9 @@ if args.db_drop:
 if not os.path.exists(db_path):
     os.makedirs(db_path)
 
-conn = sqlite3.connect(db_file)
+from db import cursor
 
-c = conn.cursor()
-
-c.execute('''
+cursor.execute('''
     create table DataTypes
     (
         DataTypesID text,
@@ -38,11 +36,11 @@ c.execute('''
         Units text
     );
 ''')
-c.execute('''
+cursor.execute('''
     create unique index DT_PK on DataTypes(DataTypesID);
 ''')
 
-c.execute('''
+cursor.execute('''
     create table DataSources
     (
         DataSourceID text,
@@ -50,11 +48,11 @@ c.execute('''
         Description text
     );
 ''')
-c.execute('''
+cursor.execute('''
     create unique index DS_PK on DataSources(DataSourceID);
 ''')
 
-c.execute('''
+cursor.execute('''
     create table Data
     (
         DataTypeID text,
@@ -65,6 +63,6 @@ c.execute('''
         FOREIGN KEY(DataSourceID) REFERENCES DataSources(DataSourceID)
     );
 ''')
-c.execute('''
+cursor.execute('''
     create unique index D_PK on Data(DataTypeID, DataSourceID, ObsTime);
 ''')
