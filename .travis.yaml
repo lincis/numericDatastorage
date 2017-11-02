@@ -6,5 +6,7 @@ before_install:
 - pip install pytest pytest-cov
 - pip install coveralls
 - pip install flask flask-restful jsonfy
+install:
+- nohup FLASK_APP=ObsDataRest.py flask run &
 script:
 - pytest .
