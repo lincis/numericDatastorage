@@ -3,10 +3,8 @@ python:
 - '2.7'
 - '3.6'
 before_install:
-- pip install pytest pytest-cov
-- pip install coveralls
-- pip install flask flask-restful jsonfy
 install:
+- pip install flask flask-restful
 - nohup FLASK_APP=ObsDataRest.py flask run &
 script:
 - pytest .
