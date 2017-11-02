@@ -5,7 +5,7 @@ python:
 before_install:
 install:
 - pip install flask flask-restful requests
-deploy:
-- FLASK_APP=ObsDataRest.py flask run
+- python create_db.py
+- python run.py &
 script:
 - pytest .
