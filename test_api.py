@@ -11,8 +11,16 @@ class TestDataSources:
         r = requests.delete('%s%s' % (self.urlbase, source_id))
         assert r.status_code == 200
 
+    @pytest.mark.first
     @pytest.mark.parametrize('resp_code',(200,500))
     def test_source_post(self, resp_code):
         r = requests.post('%s%s' % (self.urlbase, source_id),
             json={ 'Name': 'Test', 'Description': 'Test description' })
         assert r.status_code == resp_code
+
+    @pytest.mark.parametrize('id',('',source_id))
+    def test_source_get(self, id):
+        r = requests.get('%s%s' % (self.urlbase, id),
+            json={ 'Name': 'Test', 'Description': 'Test description' })
+        assert r.status_code == 200
+        print (r.json())

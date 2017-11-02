@@ -3,7 +3,7 @@ python:
 - '3.6'
 before_install:
 install:
-- pip install flask flask-restful requests
+- pip install flask flask-restful requests pytest-ordering
 - python create_db.py
 - python run.py &
 script:

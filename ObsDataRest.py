@@ -18,7 +18,7 @@ class  DataSources(Resource):
         logging.info("%s.%s(%s)" % (self.__class__.__name__, "get", source_id))
         try:
             if source_id:
-                query = cursor.execute('select * from DataSources whe DataSourceID = ?', (source_id,))
+                query = cursor.execute('select * from DataSources where DataSourceID = ?', (source_id,))
                 rv = query.fetchone()
             else:
                 query = cursor.execute('select * from DataSources')
@@ -49,4 +49,7 @@ class  DataSources(Resource):
             logging.error("%s.%s() failed" % (self.__class__.__name__, "delete"), exc_info = True)
             raise
 
-api.add_resource(DataSources, '/sources/<source_id>')
+api.add_resource(DataSources,
+        '/sources/<source_id>',
+        '/sources/'
+    )
