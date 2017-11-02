@@ -4,7 +4,11 @@ python:
 before_install:
 install:
 - pip install flask flask-restful requests pytest-ordering
+- pip install pytest-cov coveralls
 - python create_db.py
 - python run.py &
 script:
 - pytest .
+after_success:
+- coverage run ObsDataRest
+- coveralls
