@@ -14,27 +14,39 @@ app = Flask(__name__)
 api = Api(app)
 
 class  DataSources(Resource):
-    def get(self):
-        logging.info("%s.%s()" % (self.__class__.__name__, "get"))
+    def get(self, source_id = None):
+        logging.info("%s.%s(%s)" % (self.__class__.__name__, "get", source_id))
         try:
-            query = cursor.execute('select * from DataSources')
-            rv = query.fetchall()
+            if source_id:
+                query = cursor.execute('select * from DataSources whe DataSourceID = ?', (source_id,))
+                rv = query.fetchone()
+            else:
+                query = cursor.execute('select * from DataSources')
+                rv = query.fetchall()
             logging.info("%s.%s() = %s" % (self.__class__.__name__, "get", rv))
             return{'DataSources': rv}
         except:
             logging.error("%s.%s() failed" % (self.__class__.__name__, "get"), exc_info = True)
             raise
 
-    def post(self):
-        logging.info("%s.%s(%s)" % (self.__class__.__name__, "post", request.json))
+    def post(self, source_id):
+        logging.info("%s.%s(%s, %s)" % (self.__class__.__name__, "post", source_id, request.json))
         try:
-            id = request.json['DataSourceID']
             name = request.json['Name']
             desc = request.json['Description']
-            cursor.execute('insert into DataSources values (?,?,?)',(id, name, desc))
+            cursor.execute('insert into DataSources values (?,?,?)',(source_id, name, desc))
             conn.commit()
         except:
             logging.error("%s.%s() failed" % (self.__class__.__name__, "post"), exc_info = True)
             raise
 
-api.add_resource(DataSources, '/sources')
+    def delete(self, source_id):
+        logging.info("%s.%s(%s)" % (self.__class__.__name__, "delete", source_id))
+        try:
+            cursor.execute('delete from DataSources where DataSourceID = ?',(source_id,))
+            conn.commit()
+        except:
+            logging.error("%s.%s() failed" % (self.__class__.__name__, "delete"), exc_info = True)
+            raise
+
+api.add_resource(DataSources, '/sources/<source_id>')
