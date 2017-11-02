@@ -4,6 +4,7 @@ python:
 - '3.6'
 before_install:
 install:
+- pip install flask flask-restful requests
 - nohup FLASK_APP=ObsDataRest.py flask run &
 script:
 - pytest .
