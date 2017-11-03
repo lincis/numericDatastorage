@@ -2,7 +2,7 @@ import argparse
 import os
 import sqlite3
 import configparser
-from .db import get_conn, db_file
+from db import get_conn, db_file
 
 def create(drop = False):
     db_path = os.path.dirname(db_file)
