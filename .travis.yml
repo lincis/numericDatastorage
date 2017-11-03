@@ -5,8 +5,9 @@ before_install:
 install:
 - pip install flask flask-restful pytest-ordering
 - pip install coverage coveralls
+before_script:
+- python create_db.py
 script:
-- coverage run --source=ObsDataRest -m ObsDataRest/create_db.py
 - coverage run --source=ObsDataRest -m pytest .
 after_success:
 - coveralls
