@@ -88,17 +88,26 @@ class DataTypes(_ODRBase):
             logging.error("%s.%s() failed" % (self.__class__.__name__, "get"), exc_info = True)
             raise
 
-    def post(self, type_id):
-        logging.info("%s.%s(%s, %s)" % (self.__class__.__name__, "post", type_id, request.json))
+    def put(self, type_id = None):
+        logging.info("%s.%s(%s, %s)" % (self.__class__.__name__, "put", type_id, request.json))
+        if not type_id:
+            return '', 405
         try:
             name = request.json['Name']
             desc = request.json['Description']
             units = request.json['Units']
-            self.cursor.execute('insert into DataTypes values (?,?,?,?)',(type_id, name, desc, units))
+            query = self.cursor.execute('select DataTypeID from DataTypes where DataTypeID = ?', (type_id,))
+            if len(query.fetchall()):
+                self.cursor.execute('update DataTypes set Name = ?, Description = ?, Units = ? where DataTypeID = ?',(name, desc, units, type_id))
+                rc = 201
+            else:
+                self.cursor.execute('insert into DataTypes values (?,?,?,?)',(type_id, name, desc, units))
+                rc = 200
             self.conn.commit()
         except:
-            logging.error("%s.%s() failed" % (self.__class__.__name__, "post"), exc_info = True)
+            logging.error("%s.%s() failed" % (self.__class__.__name__, "put"), exc_info = True)
             raise
+        return request.json, rc
 
     def delete(self, type_id):
         logging.info("%s.%s(%s)" % (self.__class__.__name__, "delete", type_id))

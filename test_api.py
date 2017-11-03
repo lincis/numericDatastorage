@@ -45,16 +45,22 @@ class TestDataSources:
 
     @pytest.mark.first
     def test_type_post(self):
-        r = self.client.post('/types/%s' % (type_id),
+        r = self.client.put('/types/%s' % (type_id),
             data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
             content_type='application/json')
         assert r.status_code == 200
 
     def test_type_post2(self):
-        with pytest.raises(sqlite3.IntegrityError):
-            r = self.client.post('/types/%s' % (type_id),
-                data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
-                content_type='application/json')
+        r = self.client.put('/types/%s' % (type_id),
+            data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
+            content_type='application/json')
+        assert r.status_code == 201
+
+    def test_type_post3(self):
+        r = self.client.put('/types/',
+            data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
+            content_type='application/json')
+        assert r.status_code == 405
 
     @pytest.mark.parametrize('id',('',type_id))
     def test_type_get(self, id):
