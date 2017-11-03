@@ -5,11 +5,9 @@ before_install:
 install:
 - pip install flask flask-restful requests pytest-ordering
 - pip install pytest-cov coveralls
-- python create_db.py
-- python run.py &
-- sleep 2
 script:
-- pytest .
+- coverage run --append --source=ObsDataRest run.py -c &
+- sleep 2
+- coverage run -a --source=ObsDataRest -m pytest .
 after_success:
-- coverage run -m pytest .
 - coveralls

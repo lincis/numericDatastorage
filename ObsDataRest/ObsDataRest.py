@@ -1,8 +1,10 @@
-from db import conn, cursor
+from .db import get_conn
 
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 import logging
+
+conn, cursor = get_conn()
 
 logging.basicConfig(
     filename = '%s.log' % __name__,
