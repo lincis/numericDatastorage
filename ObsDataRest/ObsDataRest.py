@@ -72,7 +72,48 @@ class  DataSources(_ODRBase):
             logging.error("%s.%s() failed" % (self.__class__.__name__, "delete"), exc_info = True)
             raise
 
+class DataTypes(_ODRBase):
+    def get(self, type_id = None):
+        logging.info("%s.%s(%s)" % (self.__class__.__name__, "get", type_id))
+        try:
+            if type_id:
+                query = self.cursor.execute('select * from DataTypes where DataTypeID = ?', (type_id,))
+                rv = query.fetchone()
+            else:
+                query = self.cursor.execute('select * from DataTypes')
+                rv = query.fetchall()
+            logging.info("%s.%s() = %s" % (self.__class__.__name__, "get", rv))
+            return{'DataTypes': rv}
+        except:
+            logging.error("%s.%s() failed" % (self.__class__.__name__, "get"), exc_info = True)
+            raise
+
+    def post(self, type_id):
+        logging.info("%s.%s(%s, %s)" % (self.__class__.__name__, "post", type_id, request.json))
+        try:
+            name = request.json['Name']
+            desc = request.json['Description']
+            units = request.json['Units']
+            self.cursor.execute('insert into DataTypes values (?,?,?,?)',(type_id, name, desc, units))
+            self.conn.commit()
+        except:
+            logging.error("%s.%s() failed" % (self.__class__.__name__, "post"), exc_info = True)
+            raise
+
+    def delete(self, type_id):
+        logging.info("%s.%s(%s)" % (self.__class__.__name__, "delete", type_id))
+        try:
+            self.cursor.execute('delete from DataTypes where DataTypeID = ?',(type_id,))
+            self.conn.commit()
+        except:
+            logging.error("%s.%s() failed" % (self.__class__.__name__, "delete"), exc_info = True)
+            raise
+
 api.add_resource(DataSources,
         '/sources/<source_id>',
         '/sources/'
+    )
+api.add_resource(DataTypes,
+        '/types/<type_id>',
+        '/types/'
     )

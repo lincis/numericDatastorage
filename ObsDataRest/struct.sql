@@ -1,11 +1,11 @@
 create table DataTypes
 (
-    DataTypesID text,
+    DataTypeID text,
     Name text,
     Description text,
     Units text
 );
-create unique index DT_PK on DataTypes(DataTypesID);
+create unique index DT_PK on DataTypes(DataTypeID);
 
 create table DataSources
 (
