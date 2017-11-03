@@ -31,11 +31,12 @@ logging.basicConfig(
     format='%(asctime)s %(message)s',
 )
 
-class  DataSources(Resource):
+class _ODRBase(Resource):
     def __init__(self):
         self.conn, self.cursor = get_conn(getattr(g, "db_file", db_file))
-        super(DataSources, self).__init__()
+        super(_ODRBase, self).__init__()
 
+class  DataSources(_ODRBase):
     def get(self, source_id = None):
         logging.info("%s.%s(%s)" % (self.__class__.__name__, "get", source_id))
         try:
