@@ -2,7 +2,7 @@ import configparser
 import os
 from .db import get_conn
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 from flask_restful import Resource, Api
 import logging
 
@@ -15,12 +15,15 @@ config.read(os.path.join(mypath,"ObsDataRest.cfg"))
 
 db_file = os.path.join(mypath,config["database"]["path"])
 
-def init_db(path = db_file):
+def init_db(path = None):
+    if not path:
+        path = getattr(g, "db_file", db_file)
     with app.app_context():
         conn, cursor = get_conn(path, True)
         with app.open_resource('struct.sql', mode='r') as f:
             cursor.executescript(f.read())
         conn.commit()
+    g.db_file = path
 
 logging.basicConfig(
     filename = '%s.log' % __name__,
@@ -30,7 +33,7 @@ logging.basicConfig(
 
 class  DataSources(Resource):
     def __init__(self):
-        self.conn, self.cursor = get_conn(db_file)
+        self.conn, self.cursor = get_conn(getattr(g, "db_file", db_file))
         super(DataSources, self).__init__()
 
     def get(self, source_id = None):

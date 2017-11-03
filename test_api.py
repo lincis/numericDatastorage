@@ -7,7 +7,8 @@ source_id = str(uuid.uuid4())
 
 class _TestDataRest:
     def setup_class(self):
-        init_db()
+        with app.app_context():
+            init_db()
         app.testing = True
         self.client = app.test_client()
 
