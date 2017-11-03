@@ -33,4 +33,7 @@ class TestDataSources(_TestDataRest):
         r = self.client.get('/sources/%s' % (id),
             content_type='application/json')
         assert r.status_code == 200
-        print (r.data)
+        data = r_data = json.loads(r.data)["DataSources"]
+        if not id:
+            r_data = data.pop()
+        assert r_data["DataSourceID"] == source_id
