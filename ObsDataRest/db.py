@@ -1,12 +1,5 @@
 import sqlite3
-import configparser
 import os
-
-mypath = os.path.dirname(os.path.realpath(__file__))
-config = configparser.ConfigParser()
-config.read(os.path.join(mypath,"ObsDataRest.cfg"))
-
-db_file = os.path.join(mypath,config["database"]["path"])
 
 def dict_factory(cursor, row):
     d = {}
@@ -16,9 +9,18 @@ def dict_factory(cursor, row):
 
 conn = cursor = None
 
-def get_conn():
+def get_conn(db_file, drop = False):
     global conn, cursor
+    if drop:
+        if conn:
+            conn.close()
+            conn = None
+        if os.path.exists(db_file):
+            os.remove(db_file)
     if not (conn or cursor):
+        db_path = os.path.dirname(db_file)
+        if not os.path.exists(db_path):
+            os.makedirs(db_path)
         conn = sqlite3.connect(db_file)
         conn.row_factory = dict_factory
         cursor = conn.cursor()

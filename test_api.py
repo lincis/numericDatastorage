@@ -2,11 +2,12 @@ import json
 import pytest
 import uuid
 import sqlite3
-from ObsDataRest import app
+from ObsDataRest import app, init_db
 source_id = str(uuid.uuid4())
 
 class _TestDataRest:
     def setup_class(self):
+        init_db()
         app.testing = True
         self.client = app.test_client()
 

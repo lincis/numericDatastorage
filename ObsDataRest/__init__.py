@@ -1,1 +1,1 @@
-from .ObsDataRest import app
+from .ObsDataRest import app, init_db
