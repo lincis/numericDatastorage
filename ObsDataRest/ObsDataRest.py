@@ -33,118 +33,102 @@ logging.basicConfig(
 
 class _ODRBase(Resource):
     def __init__(self):
+        logging.debug('%s.__init__()' % self.__class__.__name__)
         self.conn, self.cursor = get_conn(getattr(g, 'db_file', db_file))
+        self.table = self.__class__.__name__
+        self.id_name = self.table[:-1] + 'ID'
+        self.q_get_id = 'select * from %s where %s = ?' % (self.table, self.id_name)
+        logging.debug('q_get_id: %s' % self.q_get_id)
+        self.q_get_all = 'select * from %s' % self.table
+        logging.debug('q_get_all: %s' % self.q_get_all)
+        query = self.cursor.execute('PRAGMA table_info (%s)' % (self.table,))
+        struct = query.fetchall()
+        self.cols = []
+        for col in struct:
+            self.cols.append(col['name'])
+        self.q_put_new = 'insert into %s values (%s)' % (self.table, ','.join(['?' for i in range(len(self.cols))]))
+        logging.debug('q_put_new: %s' % self.q_put_new)
+        self.q_put_update = 'update %s set %s where %s = ?' % (
+            self.table,
+            ' = ?,'.join(self.cols) + ' = ?',
+            self.id_name
+        )
+        logging.debug('q_put_update: %s' % self.q_put_update)
+        self.q_delete = 'delete from %s where %s = ?' % (self.table, self.id_name)
+        logging.debug('q_delete: %s' % self.q_delete)
         super(_ODRBase, self).__init__()
 
     def _check_entry(self,id):
-        table = self.__class__.__name__
-        id_name = table[:-1] + 'ID'
-        query = 'select %s from %s where %s = ?' % (id_name, table, id_name)
-        logging.debug('%s.%s(%s) query = %s' % (self.__class__.__name__, '_check_entry', id, query))
-        return bool(self.cursor.execute(query, (id,)).fetchall())
+        query = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
+        rv = self.cursor.execute(query, [id,]).fetchone()
+        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, query, rv))
+        return rv
 
-class  DataSources(_ODRBase):
-    def get(self, source_id = None):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', source_id))
+    def get(self, id = None):
+        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', id))
         try:
-            if source_id:
-                query = self.cursor.execute('select * from DataSources where DataSourceID = ?', (source_id,))
+            if id:
+                query = self.cursor.execute(self.q_get_id, [id,])
                 rv = query.fetchone()
             else:
-                query = self.cursor.execute('select * from DataSources')
+                query = self.cursor.execute(self.q_get_all)
                 rv = query.fetchall()
             logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'get'), exc_info = True)
             raise
         if rv:
-            return{'DataSources': rv}
+            return{self.table: rv}
         else:
             return '',404
 
-    def put(self, source_id):
-        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'post', source_id, request.json))
-        if not source_id:
-            return 'Please specify DataTypeID', 405
+    def put(self, id = None):
+        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', id, request.json))
+        if not id:
+            return 'Please specify %s' % self.id_name, 405
         try:
-            name = request.json['Name']
-            desc = request.json['Description']
-            if self._check_entry(source_id):
-                self.cursor.execute('update DataSources set Name = ?, Description = ? where DataSourceID = ?',(name, desc, source_id))
+            values = []
+            for col in self.cols:
+                if col == self.id_name:
+                    continue
+                values.append(request.json.get(col,''))
+            values.insert(0,id)
+            #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
+            if self._check_entry(id):
+                values.append(id)
+                self.cursor.execute(self.q_put_update, values)
                 rc = 201
             else:
-                self.cursor.execute('insert into DataSources values (?,?,?)',(source_id, name, desc))
-                rc = 200
-            self.conn.commit()
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'post'), exc_info = True)
-            raise
-        return '',rc
-
-    def delete(self, source_id):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', source_id))
-        try:
-            self.cursor.execute('delete from DataSources where DataSourceID = ?',(source_id,))
-            self.conn.commit()
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'delete'), exc_info = True)
-            raise
-
-class DataTypes(_ODRBase):
-    def get(self, type_id = None):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', type_id))
-        try:
-            if type_id:
-                query = self.cursor.execute('select * from DataTypes where DataTypeID = ?', (type_id,))
-                rv = query.fetchone()
-            else:
-                query = self.cursor.execute('select * from DataTypes')
-                rv = query.fetchall()
-            logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'get'), exc_info = True)
-            raise
-        if rv:
-            return{'DataTypes': rv}
-        else:
-            return '',404
-
-    def put(self, type_id = None):
-        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', type_id, request.json))
-        if not type_id:
-            return 'Please specify DataTypeID', 405
-        try:
-            name = request.json['Name']
-            desc = request.json['Description']
-            units = request.json['Units']
-            if self._check_entry(type_id):
-                self.cursor.execute('update DataTypes set Name = ?, Description = ?, Units = ? where DataTypeID = ?',(name, desc, units, type_id))
-                rc = 201
-            else:
-                self.cursor.execute('insert into DataTypes values (?,?,?,?)',(type_id, name, desc, units))
+                self.cursor.execute(self.q_put_new, values)
                 rc = 200
             self.conn.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
-        return request.json, rc
+        return '',rc
 
-    def delete(self, type_id):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', type_id))
-        if not self._check_entry(type_id):
+    def delete(self, id):
+        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', id))
+        if not self._check_entry(id):
             return '', 404
         try:
-            self.cursor.execute('delete from DataTypes where DataTypeID = ?',(type_id,))
+            self.cursor.execute(self.q_delete,[id,])
             self.conn.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'delete'), exc_info = True)
             raise
 
+class  DataSources(_ODRBase):
+    pass
+
+class DataTypes(_ODRBase):
+    pass
+
 api.add_resource(DataSources,
-        '/sources/<source_id>',
+        '/sources/<id>',
         '/sources/'
     )
 api.add_resource(DataTypes,
-        '/types/<type_id>',
+        '/types/<id>',
         '/types/'
     )
