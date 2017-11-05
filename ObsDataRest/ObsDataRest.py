@@ -5,6 +5,8 @@ from .db import get_conn
 from flask import Flask, request, jsonify, g
 from flask_restful import Resource, Api
 import logging
+from datetime import datetime
+from dateutil import parser
 
 app = Flask(__name__)
 api = Api(app)
@@ -124,6 +126,31 @@ class  DataSources(_ODRBase):
 class DataTypes(_ODRBase):
     pass
 
+class Data(_ODRBase):
+
+    def _check_entry(self, type_id, source_id):
+        query = 'select %s from %s where %s = ? and %s = ?' % (self.type_id, self.table, 'DataTypeID', 'DataSourceID')
+        rv = self.cursor.execute(query, [type_id,source_id,]).fetchone()
+        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, query, rv))
+        return rv
+        
+
+    def put(self):
+        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', id, request.json))
+        type_id = request.json.get('DataTypeID', None)
+        source_id = request.json.get('DataSourceID', None)
+        time = request.json.get('ObsTime', None)
+        if not (type_id and source_id):
+            return 'Please specify data source and type'
+        if not time:
+            time = datetime.now()
+        else:
+            try:
+                time = parser.parse(time)
+            except:
+                logging.error('Cannot parese time', exc_info = True)
+                return 'Cannot parse provided date/time',400
+
 api.add_resource(DataSources,
         '/sources/<id>',
         '/sources/'
@@ -131,4 +158,7 @@ api.add_resource(DataSources,
 api.add_resource(DataTypes,
         '/types/<id>',
         '/types/'
+    )
+api.add_resource(Data,
+        '/data/',
     )
