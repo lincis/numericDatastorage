@@ -19,9 +19,9 @@ create table Data
 (
     DataTypeID text,
     DataSourceID text,
-    ObsTime text,
-    value numeric,
+    DateTime text,
+    Value numeric,
     FOREIGN KEY(DataTypeID) REFERENCES DataTypes(DataTypeID),
     FOREIGN KEY(DataSourceID) REFERENCES DataSources(DataSourceID)
 );
-create unique index D_PK on Data(DataTypeID, DataSourceID, ObsTime);
+create unique index D_PK on Data(DataTypeID, DataSourceID, DateTime);

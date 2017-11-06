@@ -2,8 +2,8 @@ import configparser
 import os
 from .db import get_conn
 
-from flask import Flask, request, jsonify, g
-from flask_restful import Resource, Api
+from flask import Flask, request, g
+from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
 from dateutil import parser
@@ -58,12 +58,12 @@ class _ODRBase(Resource):
         logging.debug('q_put_update: %s' % self.q_put_update)
         self.q_delete = 'delete from %s where %s = ?' % (self.table, self.id_name)
         logging.debug('q_delete: %s' % self.q_delete)
+        self.q_check = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
         super(_ODRBase, self).__init__()
 
     def _check_entry(self,id):
-        query = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
-        rv = self.cursor.execute(query, [id,]).fetchone()
-        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, query, rv))
+        rv = self.cursor.execute(self.q_check, id).fetchone()
+        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, self.q_check, rv))
         return rv
 
     def get(self, id = None):
@@ -96,7 +96,7 @@ class _ODRBase(Resource):
                 values.append(request.json.get(col,''))
             values.insert(0,id)
             #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
-            if self._check_entry(id):
+            if self._check_entry([id,]):
                 values.append(id)
                 self.cursor.execute(self.q_put_update, values)
                 rc = 201
@@ -111,7 +111,7 @@ class _ODRBase(Resource):
 
     def delete(self, id):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', id))
-        if not self._check_entry(id):
+        if not self._check_entry([id,]):
             return '', 404
         try:
             self.cursor.execute(self.q_delete,[id,])
@@ -128,28 +128,53 @@ class DataTypes(_ODRBase):
 
 class Data(_ODRBase):
 
-    def _check_entry(self, type_id, source_id):
-        query = 'select %s from %s where %s = ? and %s = ?' % (self.type_id, self.table, 'DataTypeID', 'DataSourceID')
-        rv = self.cursor.execute(query, [type_id,source_id,]).fetchone()
-        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, query, rv))
-        return rv
-        
+    def __init__(self):
+        super(Data, self).__init__()
+        self.id_names = ['DataTypeID', 'DataSourceID', 'DateTime']
+        self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
+        self.data_sources = DataSources()
+        self.data_types = DataTypes()
+
+    def _parse_args(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('DataSourceID', type=str)
+        parser.add_argument('DataTypeID', type=str)
+        args = parser.parse_args()
+        self.source_id = args.get('DataSourceID', None)
+        self.type_id = args.get('DataTypeID', None)
 
     def put(self):
-        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', id, request.json))
-        type_id = request.json.get('DataTypeID', None)
-        source_id = request.json.get('DataSourceID', None)
-        time = request.json.get('ObsTime', None)
-        if not (type_id and source_id):
-            return 'Please specify data source and type'
-        if not time:
-            time = datetime.now()
-        else:
-            try:
-                time = parser.parse(time)
-            except:
-                logging.error('Cannot parese time', exc_info = True)
-                return 'Cannot parse provided date/time',400
+        self._parse_args()
+        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.source_id, self.type_id, request.json))
+        time = request.json.get('DateTime', None)
+        value = request.json.get('Value', None)
+        if not (self.type_id and self.source_id and value != None):
+            return 'Please specify data source, type and value', 400
+        if not self.data_sources._check_entry([self.source_id, ]):
+            return 'Invalid DataSourceID = %s' % self.source_id, 400
+        if not self.data_types._check_entry([self.type_id, ]):
+            return 'Invalid DataTypeID = %s' % self.type_id, 400
+        if not isinstance(value, list):
+            value = [value,]
+        if not isinstance(time, list):
+            time = [time,]
+        try:
+            for t, v in zip(time,value):
+                if not t:
+                    t = datetime.now()
+                else:
+                    t = parser.parse(t)
+                if self._check_entry([self.type_id, self.source_id, t]):
+                    query = 'update %s set value = ? where %s = ? and %s = ? and %s = ?' % (self.table, *self.id_names)
+                    bind = [v, self.type_id, self.source_id, t]
+                else:
+                    query = 'insert into %s values (?, ?, ?, ?)' % (self.table)
+                    bind = [self.type_id, self.source_id, t, v]
+                self.cursor.execute(query, bind)
+            self.conn.commit()
+        except:
+            logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
+            raise
 
 api.add_resource(DataSources,
         '/sources/<id>',
