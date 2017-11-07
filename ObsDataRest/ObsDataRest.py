@@ -61,18 +61,18 @@ class _ODRBase(Resource):
         self.q_check = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
         super(_ODRBase, self).__init__()
 
-    def _check_entry(self,id):
-        rv = self.cursor.execute(self.q_check, id).fetchone()
-        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', id, self.q_check, rv))
+    def _check_entry(self,_id):
+        rv = self.cursor.execute(self.q_check, _id).fetchone()
+        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', _id, self.q_check, rv))
         return rv
 
-    def get(self, id = None):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', id))
+    def get(self, _id = None):
+        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', _id))
         try:
-            if id:
-                if not isinstance(id, list):
-                    id = [id,]
-                query = self.cursor.execute(self.q_get_id, id)
+            if _id:
+                if not isinstance(_id, list):
+                    _id = [_id,]
+                query = self.cursor.execute(self.q_get_id, _id)
                 rv = query.fetchall()
             else:
                 query = self.cursor.execute(self.q_get_all)
@@ -86,9 +86,9 @@ class _ODRBase(Resource):
         else:
             return '',404
 
-    def put(self, id = None):
-        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', id, request.json))
-        if not id:
+    def put(self, _id = None):
+        logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', _id, request.json))
+        if not _id:
             return 'Please specify %s' % self.id_name, 405
         try:
             values = []
@@ -96,10 +96,10 @@ class _ODRBase(Resource):
                 if col == self.id_name:
                     continue
                 values.append(request.json.get(col,''))
-            values.insert(0,id)
+            values.insert(0,_id)
             #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
-            if self._check_entry([id,]):
-                values.append(id)
+            if self._check_entry([_id,]):
+                values.append(_id)
                 self.cursor.execute(self.q_put_update, values)
                 rc = 201
             else:
@@ -111,12 +111,12 @@ class _ODRBase(Resource):
             raise
         return '',rc
 
-    def delete(self, id):
-        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', id))
-        if not self._check_entry([id,]):
+    def delete(self, _id):
+        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
+        if not self._check_entry([_id,]):
             return '', 404
         try:
-            self.cursor.execute(self.q_delete,[id,])
+            self.cursor.execute(self.q_delete,[_id,])
             self.conn.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'delete'), exc_info = True)
@@ -152,7 +152,7 @@ class Data(_ODRBase):
         self.DataSourceID = args.get('DataSourceID', None)
         self.DataTypeID = args.get('DataTypeID', None)
 
-    def put(self):
+    def put(self, _id = None):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.DataSourceID, self.DataTypeID, request.json))
         time = request.json.get('DateTime', None)
         value = request.json.get('Value', None)
@@ -184,15 +184,15 @@ class Data(_ODRBase):
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
 
-    def get(self):
+    def get(self, _id = None):
         return super(Data, self).get(self.parents['values'])
 
 api.add_resource(DataSources,
-        '/sources/<id>',
+        '/sources/<_id>',
         '/sources/'
     )
 api.add_resource(DataTypes,
-        '/types/<id>',
+        '/types/<_id>',
         '/types/'
     )
 api.add_resource(Data,
