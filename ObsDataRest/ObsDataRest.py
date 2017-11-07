@@ -1,4 +1,4 @@
-import configparser
+rimport configparser
 import os
 from .db import get_conn
 
