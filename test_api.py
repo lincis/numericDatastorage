@@ -51,9 +51,7 @@ class TestDataSources:
         if id == 'False':
             assert r.status_code == 404
             return
-        data = r_data = json.loads(r.data)['DataSources']
-        if not id:
-            r_data = data.pop()
+        r_data = json.loads(r.data)['DataSources'].pop()
         assert r.status_code == 200
         assert r_data['DataSourceID'] == source_id
 
@@ -78,9 +76,7 @@ class TestDataSources:
         if id == 'False':
             assert r.status_code == 404
             return
-        data = r_data = json.loads(r.data)['DataTypes']
-        if not id:
-            r_data = data.pop()
+        r_data = json.loads(r.data)['DataTypes'].pop()
         assert r.status_code == 200
         assert r_data['DataTypeID'] == type_id
 

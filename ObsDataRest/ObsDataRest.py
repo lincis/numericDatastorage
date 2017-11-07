@@ -74,8 +74,6 @@ class _ODRBase(Resource):
                     id = [id,]
                 query = self.cursor.execute(self.q_get_id, id)
                 rv = query.fetchall()
-                if len(rv) == 1:
-                    rv = rv[0]
             else:
                 query = self.cursor.execute(self.q_get_all)
                 rv = query.fetchall()
