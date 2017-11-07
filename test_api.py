@@ -131,3 +131,11 @@ class TestData:
         else:
             rc = 200
         assert r.status_code == rc
+
+    @pytest.mark.parametrize('src', (src_1, src_2))
+    @pytest.mark.parametrize('typ', (type_1, type_2))
+    def test_data_get(self, src, typ):
+        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ), content_type='application/json')
+        assert r.status_code == 200
+        data = json.loads(r.data)['Data']
+        assert len(data) == 4
