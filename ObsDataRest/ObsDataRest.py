@@ -70,8 +70,12 @@ class _ODRBase(Resource):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', id))
         try:
             if id:
-                query = self.cursor.execute(self.q_get_id, [id,])
-                rv = query.fetchone()
+                if not isinstance(id, list):
+                    id = [id,]
+                query = self.cursor.execute(self.q_get_id, id)
+                rv = query.fetchall()
+                if len(rv) == 1:
+                    rv = rv[0]
             else:
                 query = self.cursor.execute(self.q_get_all)
                 rv = query.fetchall()
@@ -130,30 +134,36 @@ class Data(_ODRBase):
 
     def __init__(self):
         super(Data, self).__init__()
-        self.id_names = ['DataTypeID', 'DataSourceID', 'DateTime']
-        self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
         self.data_sources = DataSources()
         self.data_types = DataTypes()
+        self._parse_args()
+        self.id_names = ['DataTypeID', 'DataSourceID', 'DateTime']
+        self.parents = {'names': [], 'values': []}
+        for id in self.id_names:
+            if getattr(self, id, None):
+                self.parents['values'].append(getattr(self, id))
+                self.parents['names'].append(id)
+        self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
+        self.q_get_id = 'select * from %s where %s %s' % (self.table, ' = ? and '.join(self.parents['names']), '= ?')
 
     def _parse_args(self):
         parser = reqparse.RequestParser()
         parser.add_argument('DataSourceID', type=str)
         parser.add_argument('DataTypeID', type=str)
         args = parser.parse_args()
-        self.source_id = args.get('DataSourceID', None)
-        self.type_id = args.get('DataTypeID', None)
+        self.DataSourceID = args.get('DataSourceID', None)
+        self.DataTypeID = args.get('DataTypeID', None)
 
     def put(self):
-        self._parse_args()
-        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.source_id, self.type_id, request.json))
+        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.DataSourceID, self.DataTypeID, request.json))
         time = request.json.get('DateTime', None)
         value = request.json.get('Value', None)
-        if not (self.type_id and self.source_id and value != None):
+        if not (self.DataTypeID and self.DataSourceID and value != None):
             return 'Please specify data source, type and value', 400
-        if not self.data_sources._check_entry([self.source_id, ]):
-            return 'Invalid DataSourceID = %s' % self.source_id, 400
-        if not self.data_types._check_entry([self.type_id, ]):
-            return 'Invalid DataTypeID = %s' % self.type_id, 400
+        if not self.data_sources._check_entry([self.DataSourceID, ]):
+            return 'Invalid DataSourceID = %s' % self.DataSourceID, 400
+        if not self.data_types._check_entry([self.DataTypeID, ]):
+            return 'Invalid DataTypeID = %s' % self.DataTypeID, 400
         if not isinstance(value, list):
             value = [value,]
         if not isinstance(time, list):
@@ -164,17 +174,20 @@ class Data(_ODRBase):
                     t = datetime.now()
                 else:
                     t = parser.parse(t)
-                if self._check_entry([self.type_id, self.source_id, t]):
+                if self._check_entry([self.DataTypeID, self.DataSourceID, t]):
                     query = 'update %s set value = ? where %s = ? and %s = ? and %s = ?' % (self.table, *self.id_names)
-                    bind = [v, self.type_id, self.source_id, t]
+                    bind = [v, self.DataTypeID, self.DataSourceID, t]
                 else:
                     query = 'insert into %s values (?, ?, ?, ?)' % (self.table)
-                    bind = [self.type_id, self.source_id, t, v]
+                    bind = [self.DataTypeID, self.DataSourceID, t, v]
                 self.cursor.execute(query, bind)
             self.conn.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
+
+    def get(self):
+        return super(Data, self).get(self.parents['values'])
 
 api.add_resource(DataSources,
         '/sources/<id>',

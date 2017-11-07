@@ -132,10 +132,20 @@ class TestData:
             rc = 200
         assert r.status_code == rc
 
-    @pytest.mark.parametrize('src', (src_1, src_2))
-    @pytest.mark.parametrize('typ', (type_1, type_2))
+    @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
+    @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_get(self, src, typ):
-        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ), content_type='application/json')
-        assert r.status_code == 200
-        data = json.loads(r.data)['Data']
-        assert len(data) == 4
+        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ))
+        if 'Junk' in [src, typ]:
+            assert r.status_code == 404
+        else:
+            assert r.status_code == 200
+            data = json.loads(r.data)['Data']
+            mult = []
+            for var in ['src', 'typ']:
+                val = locals().get(var, None)
+                if val:
+                    mult.append(2)
+                else:
+                    mult.append(4)
+            assert len(data) == mult[0] * mult[1]
