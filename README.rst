@@ -10,8 +10,7 @@ Python REST interface for data r/w access
 
     * - tests
       - | |linux| |coverage|
-    * - quality
-        | |landscape| |codacy| |codeclimate|
+      - | |landscape| |codacy| |codeclimate|
 
 .. |linux| image:: https://img.shields.io/travis/lincis/ObsDataRest/master.svg?label=Linux%20build
    :target: https://travis-ci.org/lincis/ObsDataRest
