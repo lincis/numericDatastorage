@@ -28,8 +28,8 @@ Python REST interface for data r/w access
    :target: https://www.codacy.com/app/lincis/ObsDataRest
    :alt: Codacy Code Quality Status
 
-.. |codeclimate| image:: https://codeclimate.com/lincis/ObsDataRest/pytest-benchmark/badges/gpa.svg
-  :target: https://codeclimate.com/lincis/ObsDataRest/pytest-benchmark
-  :alt: CodeClimate Quality Status
+.. |codeclimate| image:: https://api.codeclimate.com/v1/badges/890114f100d376264e87/maintainability
+   :target: https://codeclimate.com/github/lincis/ObsDataRest/maintainability
+   :alt: Maintainability
 
 .. end-badges
