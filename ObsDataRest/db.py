@@ -10,17 +10,21 @@ def dict_factory(cursor, row):
 
 conn = cursor = None
 
+def drop_db(db_file):
+    global conn, cursor
+    if conn:
+        conn.rollback()
+        conn.close()
+        conn = None
+    if os.path.exists(db_file):
+        os.remove(db_file)
+        logging.debug('Remove file: %s' % db_file)
+
 def get_conn(db_file, drop = False):
     logging.debug('%s(%s, %s)' % ('get_conn', db_file, drop))
     global conn, cursor
     if drop:
-        if conn:
-            conn.rollback()
-            conn.close()
-            conn = None
-        if os.path.exists(db_file):
-            os.remove(db_file)
-            logging.debug('Remove file: %s' % db_file)
+        drop_db(db_file)
     if not (conn or cursor):
         logging.debug('New connection to: %s' % db_file)
         db_path = os.path.dirname(db_file)
