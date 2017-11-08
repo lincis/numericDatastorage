@@ -137,10 +137,10 @@ class Data(_ODRBase):
         self._parse_args()
         self.id_names = ['DataTypeID', 'DataSourceID', 'DateTime']
         self.parents = {'names': [], 'values': []}
-        for id in self.id_names:
-            if getattr(self, id, None):
-                self.parents['values'].append(getattr(self, id))
-                self.parents['names'].append(id)
+        for _id in self.id_names:
+            if getattr(self, _id, None):
+                self.parents['values'].append(getattr(self, _id))
+                self.parents['names'].append(_id)
         self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
         self.q_get_id = 'select * from %s where %s %s' % (self.table, ' = ? and '.join(self.parents['names']), '= ?')
 
