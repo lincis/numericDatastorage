@@ -30,10 +30,10 @@ class TestDataSources:
         app.testing = True
         self.client = app.test_client()
 
-    def teardown_class(self):
-        r = self.client.delete('/sources/%s' % (source_id))
-        assert r.status_code == 200
-        r = self.client.delete('/types/%s' % (type_id))
+    @pytest.mark.last
+    @pytest.mark.parametrize('path,_id',[('sources', source_id), ('types', type_id)])
+    def test_delete(self, path, _id):
+        r = self.client.delete('/%s/%s' % (path, _id))
         assert r.status_code == 200
 
     @pytest.mark.first
@@ -56,18 +56,12 @@ class TestDataSources:
         assert r_data['DataSourceID'] == source_id
 
     @pytest.mark.first
-    @pytest.mark.parametrize('code',(200,201))
+    @pytest.mark.parametrize('code',(200,201,405))
     def test_type_post(self, code):
-        r = self.client.put('/types/%s' % (type_id),
+        r = self.client.put('/types/%s' % (type_id if code < 400 else ''),
             data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
             content_type='application/json')
         assert r.status_code == code
-
-    def test_type_post3(self):
-        r = self.client.put('/types/',
-            data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
-            content_type='application/json')
-        assert r.status_code == 405
 
     @pytest.mark.parametrize('id',('',type_id, 'False'))
     def test_type_get(self, id):
