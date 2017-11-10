@@ -17,6 +17,7 @@ config = configparser.ConfigParser()
 config.read(os.path.join(mypath,'ObsDataRest.cfg'))
 app.config['network_read'] = config.get('network_access', 'read', fallback = None)
 app.config['network_write'] = config.get('network_access', 'write', fallback = None)
+app.config['logfile'] = config.get('log', 'path', fallback = '%s.log' % __name__)
 db_file = os.path.join(mypath,config['database']['path'])
 
 def init_db(path = None):
@@ -30,7 +31,7 @@ def init_db(path = None):
     g.db_file = path
 
 logging.basicConfig(
-    filename = '%s.log' % __name__,
+    filename = app.config.get('logfile'),
     level=logging.DEBUG,
     format='%(asctime)s %(message)s',
 )
