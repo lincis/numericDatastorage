@@ -16,7 +16,7 @@ type_1 = 'TYPE:1'
 type_2 = 'TYPE:2'
 
 
-@pytest.fixture(autouse = True, scope = "session")
+@pytest.fixture(autouse = True, scope = 'session')
 def db():
     with app.app_context():
         init_db('./.test.db')
@@ -51,7 +51,7 @@ class TestDataSources:
         if id == 'False':
             assert r.status_code == 404
             return
-        r_data = json.loads(r.data)['DataSources'].pop()
+        r_data = json.loads(r.data.decode('utf-8'))['DataSources'].pop()
         assert r.status_code == 200
         assert r_data['DataSourceID'] == source_id
 
@@ -70,7 +70,7 @@ class TestDataSources:
         if id == 'False':
             assert r.status_code == 404
             return
-        r_data = json.loads(r.data)['DataTypes'].pop()
+        r_data = json.loads(r.data.decode('utf-8'))['DataTypes'].pop()
         assert r.status_code == 200
         assert r_data['DataTypeID'] == type_id
 
@@ -130,7 +130,7 @@ class TestData:
             assert r.status_code == 404
         else:
             assert r.status_code == 200
-            data = json.loads(r.data)['Data']
+            data = json.loads(r.data.decode('utf-8'))['Data']
             mult = []
             for var in ['src', 'typ']:
                 val = locals().get(var, None)
@@ -139,3 +139,18 @@ class TestData:
                 else:
                     mult.append(4)
             assert len(data) == mult[0] * mult[1]
+
+class TestAccess:
+    def setup_class(self):
+        app.testing = True
+        self.client = app.test_client()
+
+    @pytest.mark.parametrize('mode',('read','write'))
+    def test_access(self, mode):
+        app.config['network_%s' % mode] = '192.0.0.0/24'
+        if mode == 'read':
+            r = self.client.get('/data/')
+        else:
+            r = self.client.delete('/data/')
+        assert r.status_code == 403
+        app.config['network_%s' % mode] = None

@@ -1,8 +1,9 @@
 import configparser
 import os
 from .db import get_conn
+import ipaddress
 
-from flask import Flask, request, g
+from flask import Flask, request, g, abort
 from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
@@ -14,7 +15,8 @@ api = Api(app)
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
 config.read(os.path.join(mypath,'ObsDataRest.cfg'))
-
+app.config['network_read'] = config.get('network_access', 'read', fallback = None)
+app.config['network_write'] = config.get('network_access', 'write', fallback = None)
 db_file = os.path.join(mypath,config['database']['path'])
 
 def init_db(path = None):
@@ -33,9 +35,24 @@ logging.basicConfig(
     format='%(asctime)s %(message)s',
 )
 
+def _limit_access(mode, remote_addr):
+    network_def = app.config.get('network_%s' % mode, None)
+    if not network_def:
+        return
+    if (ipaddress.ip_address(remote_addr) not in ipaddress.ip_network(network_def)):
+        abort(403)  # Forbidden
+
+@app.before_request
+def limit_remote_addr():
+    if request.method in ['PUT', 'POST', 'DELETE']:
+        mode = 'write'
+    else:
+        mode = 'read'
+    return _limit_access(mode, request.remote_addr)
+
 class _ODRBase(Resource):
     def __init__(self):
-        logging.debug('%s.__init__()' % self.__class__.__name__)
+        logging.debug('%s.__init__(), remote = %s' % (self.__class__.__name__, request.remote_addr))
         self.conn, self.cursor = get_conn(getattr(g, 'db_file', db_file))
         self.table = self.__class__.__name__
         self.id_name = self.table[:-1] + 'ID'
