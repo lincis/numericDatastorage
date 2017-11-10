@@ -12,7 +12,7 @@ Python REST interface for data r/w access
       - | |linux| |coverage|
       - | |landscape| |codacy| |codeclimate|
 
-.. |linux| image:: https://img.shields.io/travis/lincis/ObsDataRest/master.svg?label=Linux%20build
+.. |linux| image:: https://travis-ci.org/lincis/ObsDataRest.svg?branch=master
    :target: https://travis-ci.org/lincis/ObsDataRest
    :alt: Travis CI build status (Linux)
 
