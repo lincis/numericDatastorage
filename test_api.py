@@ -142,6 +142,13 @@ class TestData:
                     mult.append(4)
             assert len(data) == min(mult[0] * mult[1],limit if limit else 100)
 
+    def test_data_table(self):
+        r = self.client.get('/data/?format=google.table')
+        assert r.status_code == 200
+        data = json.loads(r.data.decode('utf-8'))
+        assert len(data['cols']) == 5
+        assert len(data['rows']) == 16
+
 class TestAccess:
     def setup_class(self):
         app.testing = True

@@ -148,6 +148,26 @@ class  DataSources(_ODRBase):
 class DataTypes(_ODRBase):
     pass
 
+def _create_google_table(raw_data):
+    cols = []
+    values = {}
+    for row in raw_data['Data']:
+        col_name = '.'.join([row['DataSourceID'], row['DataTypeID']])
+        if col_name not in cols:
+            cols.append(col_name)
+        if not row['DateTime'] in values:
+            values[row["DateTime"]] = [0 for i in range(len(cols))]
+        value_index = cols.index(col_name)
+        if value_index < len(values[row["DateTime"]]):
+            values[row["DateTime"]][value_index] = float(row['Value'])
+        else:
+            values[row["DateTime"]].append(float(row['Value']))
+    rv = {}
+    rv['cols'] = [{'id':'DateTime', 'label': 'DateTime', 'pattern': '', 'type': 'date'}]
+    rv['cols'] += [{'id': col, 'label': col, 'pattern': '', 'type': 'number'} for col in cols]
+    rv['rows'] = [{'c': [{'v': time},] + [{'v': v} for v in value]} for time, value in values.items()]
+    return rv
+
 class Data(_ODRBase):
 
     def __init__(self):
@@ -170,15 +190,17 @@ class Data(_ODRBase):
 
     def _parse_args(self):
         parser = reqparse.RequestParser()
-        parser.add_argument('DataSourceID', type=str)
-        parser.add_argument('DataTypeID', type=str)
-        parser.add_argument('offset', type=int)
-        parser.add_argument('limit', type=int)
+        parser.add_argument('DataSourceID', type = str)
+        parser.add_argument('DataTypeID',   type = str)
+        parser.add_argument('offset',       type = int, default = 0)
+        parser.add_argument('limit',        type = int, default = 50)
+        parser.add_argument('format',       type = str, default = 'raw_data')
         args = parser.parse_args()
         self.DataSourceID = args.get('DataSourceID', None)
         self.DataTypeID = args.get('DataTypeID', None)
         self.offset = args.get('offset', 0)
         self.limit = args.get('limit', 50)
+        self.format = args.get('format', 'raw')
 
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.DataSourceID, self.DataTypeID, request.json))
@@ -213,7 +235,10 @@ class Data(_ODRBase):
             raise
 
     def get(self, _id = None):
-        return super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
+        rv = super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
+        if self.format == 'google.table':
+            rv = _create_google_table(rv)
+        return rv
 
 api.add_resource(DataSources,
         '/sources/<_id>',
