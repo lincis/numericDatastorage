@@ -124,9 +124,11 @@ class TestData:
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
-    def test_data_get(self, src, typ):
-        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ))
-        if 'Junk' in [src, typ]:
+    @pytest.mark.parametrize('offset', (0, 100))
+    @pytest.mark.parametrize('limit', (0, 5, 20))
+    def test_data_get(self, src, typ, offset, limit):
+        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s&offset=%s&limit=%s' % (src, typ, offset, limit))
+        if 'Junk' in [src, typ] or offset or not limit:
             assert r.status_code == 404
         else:
             assert r.status_code == 200
@@ -138,7 +140,7 @@ class TestData:
                     mult.append(2)
                 else:
                     mult.append(4)
-            assert len(data) == mult[0] * mult[1]
+            assert len(data) == min(mult[0] * mult[1],limit if limit else 100)
 
 class TestAccess:
     def setup_class(self):

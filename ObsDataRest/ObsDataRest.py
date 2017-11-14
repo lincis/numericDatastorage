@@ -90,9 +90,11 @@ class _ODRBase(Resource):
             if _id:
                 if not isinstance(_id, list):
                     _id = [_id,]
+                logging.debug('%s.%s: %s (%s)' % (self.__class__.__name__, 'get', self.q_get_id, _id))
                 query = self.cursor.execute(self.q_get_id, _id)
                 rv = query.fetchall()
             else:
+                logging.debug('%s.%s: %s' % (self.__class__.__name__, 'get', self.q_get_all))
                 query = self.cursor.execute(self.q_get_all)
                 rv = query.fetchall()
             logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
@@ -160,15 +162,23 @@ class Data(_ODRBase):
                 self.parents['values'].append(getattr(self, _id))
                 self.parents['names'].append(_id)
         self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
-        self.q_get_id = 'select * from %s where %s %s' % (self.table, ' = ? and '.join(self.parents['names']), '= ?')
+        if len(self.parents['names']):
+            where_clause = 'where %s' % ' and '.join([s + ' = ? ' for s in self.parents['names']])
+        else:
+            where_clause = ''
+        self.q_get_id = 'select * from %s %s LIMIT ?, ?' % (self.table, where_clause)
 
     def _parse_args(self):
         parser = reqparse.RequestParser()
         parser.add_argument('DataSourceID', type=str)
         parser.add_argument('DataTypeID', type=str)
+        parser.add_argument('offset', type=int)
+        parser.add_argument('limit', type=int)
         args = parser.parse_args()
         self.DataSourceID = args.get('DataSourceID', None)
         self.DataTypeID = args.get('DataTypeID', None)
+        self.offset = args.get('offset', 0)
+        self.limit = args.get('limit', 50)
 
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.DataSourceID, self.DataTypeID, request.json))
@@ -203,7 +213,7 @@ class Data(_ODRBase):
             raise
 
     def get(self, _id = None):
-        return super(Data, self).get(self.parents['values'])
+        return super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
 
 api.add_resource(DataSources,
         '/sources/<_id>',
