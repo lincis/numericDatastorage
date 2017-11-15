@@ -157,11 +157,7 @@ def _create_google_table(raw_data):
             cols.append(col_name)
         if not row['DateTime'] in values:
             values[row["DateTime"]] = [float('NaN') for i in range(len(cols))]
-        value_index = cols.index(col_name)
-        if value_index < len(values[row["DateTime"]]):
-            values[row["DateTime"]][value_index] = float(row['Value'])
-        else:
-            values[row["DateTime"]].append(float(row['Value']))
+        values[row["DateTime"]][cols.index(col_name)] = float(row['Value'])
     rv = {}
     rv['cols'] = [{'id':'DateTime', 'label': 'DateTime', 'pattern': '', 'type': 'date'}]
     rv['cols'] += [{'id': col, 'label': col, 'pattern': '', 'type': 'number'} for col in cols]
