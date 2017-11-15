@@ -3,7 +3,7 @@ import os
 from .db import get_conn
 import ipaddress
 
-from flask import Flask, request, g, abort
+from flask import Flask, request, g, abort, jsonify
 from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
@@ -102,7 +102,7 @@ class _ODRBase(Resource):
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'get'), exc_info = True)
             raise
         if rv:
-            return{self.table: rv}
+            return{self.table: rv},200
         else:
             return '',404
 
@@ -156,7 +156,7 @@ def _create_google_table(raw_data):
         if col_name not in cols:
             cols.append(col_name)
         if not row['DateTime'] in values:
-            values[row["DateTime"]] = [0 for i in range(len(cols))]
+            values[row["DateTime"]] = [float('NaN') for i in range(len(cols))]
         value_index = cols.index(col_name)
         if value_index < len(values[row["DateTime"]]):
             values[row["DateTime"]][value_index] = float(row['Value'])
@@ -165,7 +165,7 @@ def _create_google_table(raw_data):
     rv = {}
     rv['cols'] = [{'id':'DateTime', 'label': 'DateTime', 'pattern': '', 'type': 'date'}]
     rv['cols'] += [{'id': col, 'label': col, 'pattern': '', 'type': 'number'} for col in cols]
-    rv['rows'] = [{'c': [{'v': time},] + [{'v': v} for v in value]} for time, value in values.items()]
+    rv['rows'] = [{'c': [{'v': time},] + [{'v': v} for v in value] + [{'v': float('NaN')} for i in range(len(cols)-len(value))]} for time, value in values.items()]
     return rv
 
 class Data(_ODRBase):
@@ -235,10 +235,10 @@ class Data(_ODRBase):
             raise
 
     def get(self, _id = None):
-        rv = super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
+        rv, rc = super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
         if self.format == 'google.table':
             rv = _create_google_table(rv)
-        return rv
+        return rv, rc
 
 api.add_resource(DataSources,
         '/sources/<_id>',
