@@ -11,10 +11,10 @@ def dict_factory(cursor, row):
 
 conn = {}
 cursor = {}
-thread = threading.get_ident()
 
 def drop_db(db_file):
     global conn
+    thread = threading.get_ident()
     if thread in conn:
         conn[thread].rollback()
         conn[thread].close()
@@ -25,10 +25,11 @@ def drop_db(db_file):
 
 def get_conn(db_file, drop = False):
     logging.debug('%s(%s, %s)' % ('get_conn', db_file, drop))
+    thread = threading.get_ident()
     global conn, cursor
     if drop:
         drop_db(db_file)
-    if not (thread in conn and thread in cursor):
+    if not thread:
         logging.debug('New connection to: %s' % db_file)
         db_path = os.path.dirname(db_file)
         if not os.path.exists(db_path):
