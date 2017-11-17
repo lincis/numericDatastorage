@@ -29,8 +29,8 @@ def get_conn(db_file, drop = False):
     global conn, cursor
     if drop:
         drop_db(db_file)
-    if not thread:
-        logging.debug('New connection to: %s' % db_file)
+    if not thread in conn:
+        logging.debug('New connection in thread %s to: %s' % (thread, db_file))
         db_path = os.path.dirname(db_file)
         if not os.path.exists(db_path):
             os.makedirs(db_path)
