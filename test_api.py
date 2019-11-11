@@ -6,7 +6,7 @@ import random
 from dateutil import parser
 from datetime import timedelta
 from time import mktime
-from ObsDataRest import app, init_db
+from ObsDataRest import app, db
 source_id = str(uuid.uuid4())
 type_id = str(uuid.uuid4())
 
@@ -17,9 +17,10 @@ type_2 = 'TYPE:2'
 
 
 @pytest.fixture(autouse = True, scope = 'session')
-def db():
+def database():
+    print(db)
     with app.app_context():
-        init_db('./.test.db')
+        db.create_all()
 
 def random_datetime(start, max_diff):
     diff = timedelta(days = random.randint(0, max_diff), seconds = random.randint(0, 86399))
@@ -39,9 +40,11 @@ class TestDataSources:
     @pytest.mark.first
     @pytest.mark.parametrize('code',(200,201))
     def test_source_post(self, code):
-        r = self.client.put('/sources/%s' % (source_id),
-            data=json.dumps({ 'Name': 'Test', 'Description': 'Test description' }),
-            content_type='application/json')
+        r = self.client.put(
+            '/sources/%s' % (source_id),
+            data = json.dumps({ 'name': 'Test', 'description': 'Test description' }),
+            content_type = 'application/json'
+        )
         assert r.status_code == code
 
     @pytest.mark.parametrize('id',('',source_id, 'False'))

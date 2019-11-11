@@ -1,6 +1,5 @@
 import configparser
 import os
-from .db import get_conn
 from .model import User, DataTypes, DataSources, Data
 import ipaddress
 
@@ -9,8 +8,9 @@ from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
 from dateutil import parser
+from sqlalchemy import inspect, exists
 
-from . import app, api
+from . import app, api, db, User, DataTypes, DataSources, Data
 
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
@@ -32,9 +32,16 @@ def init_db(path = None):
 
 logging.basicConfig(
     filename = app.config.get('logfile'),
-    level=logging.DEBUG,
-    format='%(asctime)s %(message)s',
+    level = logging.DEBUG,
+    format = '%(asctime)s %(message)s',
 )
+
+model_classes = {
+    'User': User,
+    'DataSources': DataSources,
+    'DataTypes': DataTypes,
+    'Data': Data
+}
 
 def _limit_access(mode, remote_addr):
     network_def = app.config.get('network_%s' % mode, None)
@@ -42,7 +49,6 @@ def _limit_access(mode, remote_addr):
         return
     if (ipaddress.ip_address(remote_addr) not in ipaddress.ip_network(network_def)):
         abort(403)  # Forbidden
-
 @app.before_request
 def limit_remote_addr():
     if request.method in ['PUT', 'POST', 'DELETE']:
@@ -54,78 +60,92 @@ def limit_remote_addr():
 class _ODRBase(Resource):
     def __init__(self):
         logging.debug('%s.__init__(), remote = %s' % (self.__class__.__name__, request.remote_addr))
-        self.conn, self.cursor = get_conn(getattr(g, 'db_file', db_file))
-        self.table = self.__class__.__name__
-        self.id_name = self.table[:-1] + 'ID'
-        self.q_get_id = 'select * from %s where %s = ?' % (self.table, self.id_name)
-        logging.debug('q_get_id: %s' % self.q_get_id)
-        self.q_get_all = 'select * from %s' % self.table
-        logging.debug('q_get_all: %s' % self.q_get_all)
-        query = self.cursor.execute('PRAGMA table_info (%s)' % (self.table,))
-        struct = query.fetchall()
+        self._model = model_classes[self.__class__.__name__]
+        # self.conn, self.cursor = get_conn(getattr(g, 'db_file', db_file))
+        # self.table = self.__class__.__name__
+        # self.id_name = self.table[:-1] + 'ID'
+        # self.q_get_id = 'select * from %s where %s = ?' % (self.table, self.id_name)
+        # logging.debug('q_get_id: %s' % self.q_get_id)
+        # self.q_get_all = 'select * from %s' % self.table
+        # logging.debug('q_get_all: %s' % self.q_get_all)
+        # query = self.cursor.execute('PRAGMA table_info (%s)' % (self.table,))
+        # struct = query.fetchall()
+        # self.cols = []
+        # for col in struct:
+        #     self.cols.append(col['name'])
+        # self.q_put_new = 'insert into %s values (%s)' % (self.table, ','.join(['?' for i in range(len(self.cols))]))
+        # logging.debug('q_put_new: %s' % self.q_put_new)
+        # self.q_put_update = 'update %s set %s where %s = ?' % (
+        #     self.table,
+        #     ' = ?,'.join(self.cols) + ' = ?',
+        #     self.id_name
+        # )
+        # logging.debug('q_put_update: %s' % self.q_put_update)
+        # self.q_delete = 'delete from %s where %s = ?' % (self.table, self.id_name)
+        # logging.debug('q_delete: %s' % self.q_delete)
+        # self.q_check = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
         self.cols = []
-        for col in struct:
-            self.cols.append(col['name'])
-        self.q_put_new = 'insert into %s values (%s)' % (self.table, ','.join(['?' for i in range(len(self.cols))]))
-        logging.debug('q_put_new: %s' % self.q_put_new)
-        self.q_put_update = 'update %s set %s where %s = ?' % (
-            self.table,
-            ' = ?,'.join(self.cols) + ' = ?',
-            self.id_name
-        )
-        logging.debug('q_put_update: %s' % self.q_put_update)
-        self.q_delete = 'delete from %s where %s = ?' % (self.table, self.id_name)
-        logging.debug('q_delete: %s' % self.q_delete)
-        self.q_check = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
+        mapper = inspect(self._model)
+        for column in mapper.attrs:
+            self.cols.append(column.key)
         super(_ODRBase, self).__init__()
 
     def _check_entry(self,_id):
-        rv = self.cursor.execute(self.q_check, _id).fetchone()
-        logging.debug('%s.%s(%s) query = %s: %s' % (self.__class__.__name__, '_check_entry', _id, self.q_check, rv))
+        rv = bool(self._model.query.filter(id == _id))
+        logging.debug('%s.%s(%s): %s' % (self.__class__.__name__, '_check_entry', _id, rv))
+        return rv
+
+    def _get(self, _id):
+        logging.debug('%s.%s(%s)' % (self.__class__.__name__, '_get', _id))
+        try:
+            if _id:
+                # rv = self._model.query.filter_by(id = _id).first()
+                rv = self._model.query.get(_id)
+            else:
+                rv = self._model.query.all()
+        except:
+            logging.error('%s.%s() failed' % (self.__class__.__name__, '_get'), exc_info = True)
+            raise
+        logging.debug('Get = %s' % rv)
         return rv
 
     def get(self, _id = None):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', _id))
-        try:
-            if _id:
-                if not isinstance(_id, list):
-                    _id = [_id,]
-                logging.debug('%s.%s: %s (%s)' % (self.__class__.__name__, 'get', self.q_get_id, _id))
-                query = self.cursor.execute(self.q_get_id, _id)
-                rv = query.fetchall()
-            else:
-                logging.debug('%s.%s: %s' % (self.__class__.__name__, 'get', self.q_get_all))
-                query = self.cursor.execute(self.q_get_all)
-                rv = query.fetchall()
-            logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'get'), exc_info = True)
-            raise
+        rv = self._get(_id)
+        logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
         if rv:
-            return{self.table: rv},200
+            return {self.table: rv}, 200
         else:
-            return '',404
+            return '', 404
 
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', _id, request.json))
         if not _id:
-            return 'Please specify %s' % self.id_name, 405
+            return 'Please specify ID', 405
         try:
-            values = []
-            for col in self.cols:
-                if col == self.id_name:
-                    continue
-                values.append(request.json.get(col,''))
-            values.insert(0,_id)
             #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
-            if self._check_entry([_id,]):
-                values.append(_id)
-                self.cursor.execute(self.q_put_update, values)
+            logging.debug('ID: %s' % _id)
+            existing_entry = self._get(_id)
+            logging.debug('ID: %s' % _id)
+            if existing_entry:
+                print('!!!!!!!!!!!!!!!!Object exists')
+                for col in self.cols:
+                    value = request.json.get(col, None)
+                    if value:
+                        setattr(existing_entry, col, value)
                 rc = 201
             else:
-                self.cursor.execute(self.q_put_new, values)
+                logging.debug('ID: %s' % _id)
+                values = {}
+                for col in self.cols:
+                    values[col] = request.json.get(col, '')
+                values['id'] = _id
+                logging.debug('Values: %s' % values)
+                new_entry = self._model(**values)
+                db.session.add(new_entry)
                 rc = 200
-            self.conn.commit()
+            db.session.flush()
+            db.session.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
@@ -136,8 +156,9 @@ class _ODRBase(Resource):
         if not self._check_entry([_id,]):
             return '', 404
         try:
-            self.cursor.execute(self.q_delete,[_id,])
-            self.conn.commit()
+            del_entry = self.get(id)
+            db.session.delete(del_entry)
+            db.session.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'delete'), exc_info = True)
             raise
