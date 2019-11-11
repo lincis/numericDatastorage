@@ -1,6 +1,7 @@
 import configparser
 import os
 from .db import get_conn
+from .model import User
 import ipaddress
 
 from flask import Flask, request, g, abort, jsonify
@@ -9,8 +10,7 @@ import logging
 from datetime import datetime
 from dateutil import parser
 
-app = Flask(__name__)
-api = Api(app)
+from . import app, api
 
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
