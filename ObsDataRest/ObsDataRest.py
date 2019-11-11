@@ -1,7 +1,7 @@
 import configparser
 import os
 from .db import get_conn
-from .model import User
+from .model import User, DataTypes, DataSources, Data
 import ipaddress
 
 from flask import Flask, request, g, abort, jsonify
