@@ -15,20 +15,20 @@ from . import app, api, db, User, DataTypes, DataSources, Data
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
 config.read(os.path.join(mypath,'ObsDataRest.cfg'))
-app.config['network_read'] = config.get('network_access', 'read', fallback = None)
-app.config['network_write'] = config.get('network_access', 'write', fallback = None)
-app.config['logfile'] = config.get('log', 'path', fallback = '%s.log' % __name__)
+# app.config['network_read'] = config.get('network_access', 'read', fallback = None)
+# app.config['network_write'] = config.get('network_access', 'write', fallback = None)
+# app.config['logfile'] = config.get('log', 'path', fallback = '%s.log' % __name__)
 db_file = os.path.join(mypath,config['database']['path'])
 
 def init_db(path = None):
     if not path:
         path = getattr(g, 'db_file', db_file)
-    with app.app_context():
-        conn, cursor = get_conn(path, True)
-        with app.open_resource('struct.sql', mode='r') as f:
-            cursor.executescript(f.read())
-        conn.commit()
-    g.db_file = path
+        with app.app_context():
+            conn, cursor = get_conn(path, True)
+            with app.open_resource('struct.sql', mode='r') as f:
+                cursor.executescript(f.read())
+                conn.commit()
+                g.db_file = path
 
 logging.basicConfig(
     filename = app.config.get('logfile'),
@@ -43,47 +43,24 @@ model_classes = {
     'Data': Data
 }
 
-def _limit_access(mode, remote_addr):
-    network_def = app.config.get('network_%s' % mode, None)
-    if not network_def:
-        return
-    if (ipaddress.ip_address(remote_addr) not in ipaddress.ip_network(network_def)):
-        abort(403)  # Forbidden
-@app.before_request
-def limit_remote_addr():
-    if request.method in ['PUT', 'POST', 'DELETE']:
-        mode = 'write'
-    else:
-        mode = 'read'
-    return _limit_access(mode, request.remote_addr)
+# def _limit_access(mode, remote_addr):
+#     network_def = app.config.get('network_%s' % mode, None)
+#     if not network_def:
+#         return
+#     if (ipaddress.ip_address(remote_addr) not in ipaddress.ip_network(network_def)):
+#         abort(403)  # Forbidden
+# @app.before_request
+# def limit_remote_addr():
+#     if request.method in ['PUT', 'POST', 'DELETE']:
+#         mode = 'write'
+#     else:
+#         mode = 'read'
+#     return _limit_access(mode, request.remote_addr)
 
 class _ODRBase(Resource):
     def __init__(self):
         logging.debug('%s.__init__(), remote = %s' % (self.__class__.__name__, request.remote_addr))
         self._model = model_classes[self.__class__.__name__]
-        # self.conn, self.cursor = get_conn(getattr(g, 'db_file', db_file))
-        # self.table = self.__class__.__name__
-        # self.id_name = self.table[:-1] + 'ID'
-        # self.q_get_id = 'select * from %s where %s = ?' % (self.table, self.id_name)
-        # logging.debug('q_get_id: %s' % self.q_get_id)
-        # self.q_get_all = 'select * from %s' % self.table
-        # logging.debug('q_get_all: %s' % self.q_get_all)
-        # query = self.cursor.execute('PRAGMA table_info (%s)' % (self.table,))
-        # struct = query.fetchall()
-        # self.cols = []
-        # for col in struct:
-        #     self.cols.append(col['name'])
-        # self.q_put_new = 'insert into %s values (%s)' % (self.table, ','.join(['?' for i in range(len(self.cols))]))
-        # logging.debug('q_put_new: %s' % self.q_put_new)
-        # self.q_put_update = 'update %s set %s where %s = ?' % (
-        #     self.table,
-        #     ' = ?,'.join(self.cols) + ' = ?',
-        #     self.id_name
-        # )
-        # logging.debug('q_put_update: %s' % self.q_put_update)
-        # self.q_delete = 'delete from %s where %s = ?' % (self.table, self.id_name)
-        # logging.debug('q_delete: %s' % self.q_delete)
-        # self.q_check = 'select %s from %s where %s = ?' % (self.id_name, self.table, self.id_name)
         self.cols = []
         mapper = inspect(self._model)
         for column in mapper.attrs:
@@ -95,12 +72,23 @@ class _ODRBase(Resource):
         logging.debug('%s.%s(%s): %s' % (self.__class__.__name__, '_check_entry', _id, rv))
         return rv
 
+    def _dict(self, db_obj):
+        rvs = []
+        for obj in db_obj:
+            if not obj:
+                continue
+            rv = {}
+            for col in self.cols:
+                rv[col] = obj.__getattribute__(col)
+            rvs.append(rv)
+        return rvs
+
     def _get(self, _id):
         logging.debug('%s.%s(%s)' % (self.__class__.__name__, '_get', _id))
         try:
             if _id:
                 # rv = self._model.query.filter_by(id = _id).first()
-                rv = self._model.query.get(_id)
+                rv = [self._model.query.get(_id),]
             else:
                 rv = self._model.query.all()
         except:
@@ -113,8 +101,8 @@ class _ODRBase(Resource):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', _id))
         rv = self._get(_id)
         logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
-        if rv:
-            return {self.table: rv}, 200
+        if rv[0]:
+            return {self.__class__.__name__: self._dict(rv)}, 200
         else:
             return '', 404
 
@@ -125,10 +113,9 @@ class _ODRBase(Resource):
         try:
             #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
             logging.debug('ID: %s' % _id)
-            existing_entry = self._get(_id)
+            existing_entry = self._get(_id)[0]
             logging.debug('ID: %s' % _id)
             if existing_entry:
-                print('!!!!!!!!!!!!!!!!Object exists')
                 for col in self.cols:
                     value = request.json.get(col, None)
                     if value:
