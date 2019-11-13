@@ -98,12 +98,12 @@ class TestData:
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put(self, src, typ):
-        r = self.client.put('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ),
-            data=json.dumps({ 'Value': 25.5 }),
+        r = self.client.put('/data/%s/%s' % (src, typ),
+            data=json.dumps({ 'value': 25.5 }),
             content_type='application/json')
         if not (src and typ):
-            rc = 400
-        elif 'Junk' in [src,typ]:
+            rc = 404
+        elif 'Junk' in [src, typ]:
             rc = 400
         else:
             rc = 200
@@ -144,14 +144,7 @@ class TestData:
                     mult.append(2)
                 else:
                     mult.append(4)
-            assert len(data) == min(mult[0] * mult[1],limit if limit else 100)
-
-    def test_data_table(self):
-        r = self.client.get('/data/?format=google.table')
-        assert r.status_code == 200
-        data = json.loads(r.data.decode('utf-8'))
-        assert len(data['cols']) == 5
-        assert len(data['rows']) == 16
+            assert len(data) == min(mult[0] * mult[1], limit if limit else 100)
 
 # class TestAccess:
 #     def setup_class(self):

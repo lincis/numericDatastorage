@@ -10,6 +10,7 @@ from datetime import datetime
 from dateutil import parser
 
 from . import app, api, db
+from sqlalchemy import func
 
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
@@ -116,67 +117,18 @@ class DataTypes(_ODRBase):
     pass
 
 class Data(_ODRBase):
-
-    def __init__(self):
-        super(Data, self).__init__()
-        self.data_sources = DataSources()
-        self.data_types = DataTypes()
-        self._parse_args()
-        self.id_names = ['DataTypeID', 'DataSourceID', 'DateTime']
-        self.parents = {'names': [], 'values': []}
-        for _id in self.id_names:
-            if getattr(self, _id, None):
-                self.parents['values'].append(getattr(self, _id))
-                self.parents['names'].append(_id)
-        self.q_check = 'select %s from %s where %s = ? and %s = ? and %s = ?' % ('Value', self.table, *self.id_names)
-        if len(self.parents['names']):
-            where_clause = 'where %s' % ' and '.join([s + ' = ? ' for s in self.parents['names']])
-        else:
-            where_clause = ''
-        self.q_get_id = 'select * from %s %s LIMIT ?, ?' % (self.table, where_clause)
-
-    def _parse_args(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('DataSourceID', type = str)
-        parser.add_argument('DataTypeID',   type = str)
-        parser.add_argument('offset',       type = int, default = 0)
-        parser.add_argument('limit',        type = int, default = 50)
-        parser.add_argument('format',       type = str, default = 'raw_data')
-        args = parser.parse_args()
-        self.DataSourceID = args.get('DataSourceID', None)
-        self.DataTypeID = args.get('DataTypeID', None)
-        self.offset = args.get('offset', 0)
-        self.limit = args.get('limit', 50)
-        self.format = args.get('format', 'raw')
-
-    def put(self, _id = None):
-        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', self.DataSourceID, self.DataTypeID, request.json))
-        time = request.json.get('DateTime', None)
-        value = request.json.get('Value', None)
-        if not (self.DataTypeID and self.DataSourceID and value != None):
-            return 'Please specify data source, type and value', 400
-        if not self.data_sources._check_entry([self.DataSourceID, ]):
-            return 'Invalid DataSourceID = %s' % self.DataSourceID, 400
-        if not self.data_types._check_entry([self.DataTypeID, ]):
-            return 'Invalid DataTypeID = %s' % self.DataTypeID, 400
-        if not isinstance(value, list):
-            value = [value,]
-        if not isinstance(time, list):
-            time = [time,]
+    def put(self, _source, _type, **kwargs):
+        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', _source, _type, request.json))
         try:
-            for t, v in zip(time,value):
-                if not t:
-                    t = datetime.now()
-                else:
-                    t = parser.parse(t)
-                if self._check_entry([self.DataTypeID, self.DataSourceID, t]):
-                    query = 'update %s set value = ? where %s = ? and %s = ? and %s = ?' % (self.table, *self.id_names)
-                    bind = [v, self.DataTypeID, self.DataSourceID, t]
-                else:
-                    query = 'insert into %s values (?, ?, ?, ?)' % (self.table)
-                    bind = [self.DataTypeID, self.DataSourceID, t, v]
-                self.cursor.execute(query, bind)
-            self.conn.commit()
+            if 'data_type_id' not in request.json:
+                request.json['data_type_id'] = _type
+            if 'data_source_id' not in request.json:
+                request.json['data_source_id'] = _source
+            if 'entity_created' not in request.json:
+                request.json['entity_created'] = datetime.now()
+            new_entry = self._model.from_dict(request.json)
+            new_entry.insert()
+            return '', 200
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
@@ -188,13 +140,19 @@ class Data(_ODRBase):
         return rv, rc
 
 api.add_resource(DataSources,
-        '/sources/<_id>',
+        '/sources/<string:_id>',
         '/sources/'
     )
 api.add_resource(DataTypes,
-        '/types/<_id>',
+        '/types/<string:_id>',
         '/types/'
     )
 api.add_resource(Data,
-        '/data/',
+        '/data/<string:_source>/<string:_type>',
+        '/data/<string:_source>/<string:_type>/<string:_end_date>',
+        '/data/<string:_source>/<string:_type>/<string:_end_date>/<string:_start_date>',
     )
+@app.route('/data/dates')
+def get_data_dates():
+    res = db.session.query(func.max(DataModel.entity_created).label('max_date'), func.min(DataModel.entity_created).label('min_date')).one()
+    return res, 200
