@@ -50,7 +50,7 @@ class TestDataSources:
     @pytest.mark.parametrize('id',('',source_id, 'False'))
     def test_source_get(self, id):
         r = self.client.get('/sources/%s' % (id),
-            content_type='application/json')
+            content_type = 'application/json')
         if id == 'False':
             assert r.status_code == 404
             return
@@ -63,14 +63,14 @@ class TestDataSources:
     @pytest.mark.parametrize('code',(200,201,405))
     def test_type_post(self, code):
         r = self.client.put('/types/%s' % (type_id if code < 400 else ''),
-            data=json.dumps({ 'Name': 'Test', 'Description': 'Test description', 'Units': 'Test units' }),
-            content_type='application/json')
+            data = json.dumps({ 'name': 'Test', 'description': 'Test description', 'units': 'Test units' }),
+            content_type = 'application/json')
         assert r.status_code == code
 
     @pytest.mark.parametrize('id',('',type_id, 'False'))
     def test_type_get(self, id):
         r = self.client.get('/types/%s' % (id),
-            content_type='application/json')
+            content_type = 'application/json')
         if id == 'False':
             assert r.status_code == 404
             return
@@ -83,16 +83,16 @@ class TestData:
         app.testing = True
         self.client = app.test_client()
         r = self.client.put('/sources/%s' % (src_1),
-            data=json.dumps({ 'Name': 'Test 1', 'Description': 'Test source 1' }),
+            data=json.dumps({ 'name': 'Test 1', 'description': 'Test source 1' }),
             content_type='application/json')
         r = self.client.put('/sources/%s' % (src_2),
-            data=json.dumps({ 'Name': 'Test 2', 'Description': 'Test source 2' }),
+            data=json.dumps({ 'name': 'Test 2', 'description': 'Test source 2' }),
             content_type='application/json')
         r = self.client.put('/types/%s' % (type_1),
-            data=json.dumps({ 'Name': 'Test 1', 'Description': 'Test type 1', 'Units': 'unit1' }),
+            data=json.dumps({ 'name': 'Test 1', 'description': 'Test type 1', 'units': 'unit1' }),
             content_type='application/json')
         r = self.client.put('/types/%s' % (type_2),
-            data=json.dumps({ 'Name': 'Test 2', 'Description': 'Test type 2', 'Units': 'unit2' }),
+            data=json.dumps({ 'name': 'Test 2', 'description': 'Test type 2', 'units': 'unit2' }),
             content_type='application/json')
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
@@ -114,8 +114,8 @@ class TestData:
     def test_data_put_bulk(self, src, typ):
         r = self.client.put('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ),
             data=json.dumps({
-                'DateTime': [random_datetime('2017-01-01T00:00', 365) for i in range(3)],
-                'Value': [random.uniform(1,100) for i in range(3)],
+                'datetime': [random_datetime('2017-01-01T00:00', 365) for i in range(3)],
+                'value': [random.uniform(1,100) for i in range(3)],
             }),
             content_type='application/json')
         if not (src and typ):

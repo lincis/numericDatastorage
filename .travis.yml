@@ -1,11 +1,14 @@
 language: python
 python:
-- '3.6'
-before_install:
+  - '3.6'
+services:
+  - postgresql
+before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
 install:
-- pip install  python-dateutil flask flask-restful flask-sqlalchemy pytest-ordering pytest-env
-- pip install coverage coveralls
+  - pip install python-dateutil flask flask-restful flask-sqlalchemy pytest-ordering pytest-env
+  - pip install coverage coveralls
 script:
-- coverage run --source=ObsDataRest -m pytest .
+  - coverage run --source=ObsDataRest -m pytest .
 after_success:
-- coveralls
+  - coveralls

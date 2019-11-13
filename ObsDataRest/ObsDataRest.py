@@ -8,7 +8,6 @@ from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
 from dateutil import parser
-from sqlalchemy import inspect, exists
 
 from . import app, api, db, User, DataTypes, DataSources, Data
 
@@ -61,78 +60,43 @@ class _ODRBase(Resource):
     def __init__(self):
         logging.debug('%s.__init__(), remote = %s' % (self.__class__.__name__, request.remote_addr))
         self._model = model_classes[self.__class__.__name__]
-        self.cols = []
-        mapper = inspect(self._model)
-        for column in mapper.attrs:
-            self.cols.append(column.key)
+        self.cols = self._model.columns()
         super(_ODRBase, self).__init__()
-
-    def _check_entry(self,_id):
-        rv = bool(self._model.query.filter(id == _id))
-        logging.debug('%s.%s(%s): %s' % (self.__class__.__name__, '_check_entry', _id, rv))
-        return rv
-
-    def _dict(self, db_obj):
-        rvs = []
-        for obj in db_obj:
-            if not obj:
-                continue
-            rv = {}
-            for col in self.cols:
-                rv[col] = obj.__getattribute__(col)
-            rvs.append(rv)
-        return rvs
-
-    def _get(self, _id):
-        logging.debug('%s.%s(%s)' % (self.__class__.__name__, '_get', _id))
-        try:
-            if _id:
-                # rv = self._model.query.filter_by(id = _id).first()
-                rv = [self._model.query.get(_id),]
-            else:
-                rv = self._model.query.all()
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, '_get'), exc_info = True)
-            raise
-        logging.debug('Get = %s' % rv)
-        return rv
 
     def get(self, _id = None):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'get', _id))
-        rv = self._get(_id)
-        logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', rv))
-        if rv[0]:
-            return {self.__class__.__name__: self._dict(rv)}, 200
+        objs = self._model.get(_id)
+        if _id:
+            objs = [objs, ]
+        logging.info('%s.%s() = %s' % (self.__class__.__name__, 'get', objs))
+        if all(objs):
+            return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
         else:
-            return '', 404
+            return {self.__class__.__name__: []}, 404
 
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', _id, request.json))
         if not _id:
             return 'Please specify ID', 405
         try:
-            #~ logging.debug('%s.%s values = %s' % (self.__class__.__name__, 'put', values))
-            logging.debug('ID: %s' % _id)
-            existing_entry = self._get(_id)[0]
-            logging.debug('ID: %s' % _id)
+            if _id:
+                existing_entry = self._model.get(_id)
+            else:
+                existing_entry = None
             if existing_entry:
                 for col in self.cols:
                     value = request.json.get(col, None)
                     if value:
                         setattr(existing_entry, col, value)
+                existing_entry.update()
                 rc = 201
             else:
                 logging.debug('ID: %s' % _id)
-                values = {}
-                for col in self.cols:
-                    values[col] = request.json.get(col, '')
-                values['id'] = _id
-                logging.debug('Values: %s' % values)
-                new_entry = self._model(**values)
-                db.session.add(new_entry)
+                if 'id' not in request.json:
+                    request.json['id'] = _id
+                new_entry = self._model.from_dict(request.json)
+                new_entry.insert()
                 rc = 200
-            db.session.flush()
-            db.session.commit()
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
@@ -140,15 +104,10 @@ class _ODRBase(Resource):
 
     def delete(self, _id):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
-        if not self._check_entry([_id,]):
+        if not self._model.delete()(_id):
             return '', 404
-        try:
-            del_entry = self.get(id)
-            db.session.delete(del_entry)
-            db.session.commit()
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'delete'), exc_info = True)
-            raise
+        else:
+            return '', 200
 
 class  DataSources(_ODRBase):
     pass
