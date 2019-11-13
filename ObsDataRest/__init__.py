@@ -63,5 +63,5 @@ db = SQLAlchemy(model_class = RestModel)
 db.init_app(app)
 
 
-from .model import User, DataSources, DataTypes, Data
+from .model import UserModel, DataSourcesModel, DataTypesModel, DataModel
 from .ObsDataRest import init_db

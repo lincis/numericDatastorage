@@ -1,6 +1,6 @@
 import configparser
 import os
-from .model import User, DataTypes, DataSources, Data
+from .model import UserModel, DataTypesModel, DataSourcesModel, DataModel
 import ipaddress
 
 from flask import Flask, request, g, abort, jsonify
@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from dateutil import parser
 
-from . import app, api, db, User, DataTypes, DataSources, Data
+from . import app, api, db
 
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
@@ -36,10 +36,10 @@ logging.basicConfig(
 )
 
 model_classes = {
-    'User': User,
-    'DataSources': DataSources,
-    'DataTypes': DataTypes,
-    'Data': Data
+    'User': UserModel,
+    'DataSources': DataSourcesModel,
+    'DataTypes': DataTypesModel,
+    'Data': DataModel
 }
 
 # def _limit_access(mode, remote_addr):
@@ -109,27 +109,11 @@ class _ODRBase(Resource):
         else:
             return '', 200
 
-class  DataSources(_ODRBase):
+class DataSources(_ODRBase):
     pass
 
 class DataTypes(_ODRBase):
     pass
-
-def _create_google_table(raw_data):
-    cols = []
-    values = {}
-    for row in raw_data['Data']:
-        col_name = '.'.join([row['DataSourceID'], row['DataTypeID']])
-        if col_name not in cols:
-            cols.append(col_name)
-        if not row['DateTime'] in values:
-            values[row["DateTime"]] = [float('NaN') for i in range(len(cols))]
-        values[row["DateTime"]][cols.index(col_name)] = float(row['Value'])
-    rv = {}
-    rv['cols'] = [{'id':'DateTime', 'label': 'DateTime', 'pattern': '', 'type': 'date'}]
-    rv['cols'] += [{'id': col, 'label': col, 'pattern': '', 'type': 'number'} for col in cols]
-    rv['rows'] = [{'c': [{'v': time},] + [{'v': v} for v in value] + [{'v': float('NaN')} for i in range(len(cols)-len(value))]} for time, value in values.items()]
-    return rv
 
 class Data(_ODRBase):
 

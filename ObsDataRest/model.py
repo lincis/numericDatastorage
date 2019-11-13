@@ -1,7 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import app, db
 
-class User(db.Model):
+class UserModel(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key = True)
     username = db.Column(db.String(80), unique = True, nullable = False)
@@ -18,7 +18,7 @@ class User(db.Model):
         return check_password_hash(self.password, password)
 
 
-class DataTypes(db.Model):
+class DataTypesModel(db.Model):
     __tablename__ = 'datatypes'
     id = db.Column(db.String(40), primary_key = True, nullable = False)
     name = db.Column(db.String(255), nullable = False)
@@ -28,7 +28,7 @@ class DataTypes(db.Model):
     def __repr__(self):
         return '<Data type %r (%r)>' % (self.name, self.id)
 
-class DataSources(db.Model):
+class DataSourcesModel(db.Model):
     __tablename__ = 'datasources'
     id = db.Column(db.String(40), primary_key = True, nullable = False)
     name = db.Column(db.String(255), nullable = False)
@@ -37,7 +37,7 @@ class DataSources(db.Model):
     def __repr__(self):
         return '<Data source %r (%r)>' % (self.name, self.id)
 
-class Data(db.Model):
+class DataModel(db.Model):
     __tablename__ = 'data'
     data_type_id = db.Column(db.String(40), db.ForeignKey('datatypes.id'), primary_key = True, nullable = False)
     data_source_id = db.Column(db.String(40), db.ForeignKey('datasources.id'), primary_key = True, nullable = False)
