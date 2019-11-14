@@ -106,7 +106,7 @@ class _ODRBase(Resource):
 
     def delete(self, _id):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
-        if not self._model.delete()(_id):
+        if not self._model.delete(_id):
             return '', 404
         else:
             return '', 200
