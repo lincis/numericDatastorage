@@ -146,8 +146,12 @@ class Data(_ODRBase):
         if not _end_date:
             _end_date = '2999-12-31T00:00:00'
         # objs = self._model.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
-        objs = db.session.query(self._model).all()#.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
-        print(objs)
+        objs = db.session.query(self._model)\
+            .filter(self._model.data_type_id == _type)\
+            .filter(self._model.data_source_id == _source)\
+            .filter(self._model.entity_created >= parser.parse(_start_date))\
+            .filter(self._model.entity_created <= parser.parse(_end_date))\
+            .all()
         if not objs:
             return '', 404
         if not len(objs):

@@ -40,7 +40,6 @@ class RestModel(Model):
 
     @classmethod
     def columns(cls):
-        print(cls)
         cols = []
         mapper = inspect(cls)
         for column in mapper.attrs:
