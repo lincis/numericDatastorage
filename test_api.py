@@ -83,24 +83,24 @@ class TestData:
         app.testing = True
         self.client = app.test_client()
         r = self.client.put('/sources/%s' % (src_1),
-            data=json.dumps({ 'name': 'Test 1', 'description': 'Test source 1' }),
-            content_type='application/json')
+            data = json.dumps({ 'name': 'Test 1', 'description': 'Test source 1' }),
+            content_type = 'application/json')
         r = self.client.put('/sources/%s' % (src_2),
-            data=json.dumps({ 'name': 'Test 2', 'description': 'Test source 2' }),
-            content_type='application/json')
+            data = json.dumps({ 'name': 'Test 2', 'description': 'Test source 2' }),
+            content_type = 'application/json')
         r = self.client.put('/types/%s' % (type_1),
-            data=json.dumps({ 'name': 'Test 1', 'description': 'Test type 1', 'units': 'unit1' }),
-            content_type='application/json')
+            data = json.dumps({ 'name': 'Test 1', 'description': 'Test type 1', 'units': 'unit1' }),
+            content_type = 'application/json')
         r = self.client.put('/types/%s' % (type_2),
-            data=json.dumps({ 'name': 'Test 2', 'description': 'Test type 2', 'units': 'unit2' }),
-            content_type='application/json')
+            data = json.dumps({ 'name': 'Test 2', 'description': 'Test type 2', 'units': 'unit2' }),
+            content_type = 'application/json')
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put(self, src, typ):
         r = self.client.put('/data/%s/%s' % (src, typ),
-            data=json.dumps({ 'value': 25.5 }),
-            content_type='application/json')
+            data = json.dumps({'Data': [{ 'value': 25.5 },]}),
+            content_type = 'application/json')
         if not (src and typ):
             rc = 404
         elif 'Junk' in [src, typ]:
@@ -112,14 +112,13 @@ class TestData:
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put_bulk(self, src, typ):
-        r = self.client.put('/data/?DataSourceID=%s&DataTypeID=%s' % (src, typ),
-            data=json.dumps({
-                'datetime': [random_datetime('2017-01-01T00:00', 365) for i in range(3)],
-                'value': [random.uniform(1,100) for i in range(3)],
-            }),
-            content_type='application/json')
+        n = 5
+        payload = []
+        for o in zip([random_datetime('2017-01-01T00:00', 365) for i in range(n)], [random.uniform(1,100) for i in range(n)]):
+            payload.append({'entity_created': o[0], 'value': o[1]})
+        r = self.client.put('/data/%s/%s' % (src, typ), data = json.dumps({'Data': payload}), content_type = 'application/json')
         if not (src and typ):
-            rc = 400
+            rc = 404
         elif 'Junk' in [src,typ]:
             rc = 400
         else:

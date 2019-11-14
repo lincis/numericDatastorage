@@ -11,6 +11,7 @@ from dateutil import parser
 
 from . import app, api, db
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
@@ -119,21 +120,28 @@ class DataTypes(_ODRBase):
 class Data(_ODRBase):
     def put(self, _source, _type, **kwargs):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', _source, _type, request.json))
-        try:
-            if 'data_type_id' not in request.json:
-                request.json['data_type_id'] = _type
-            if 'data_source_id' not in request.json:
-                request.json['data_source_id'] = _source
-            if 'entity_created' not in request.json:
-                request.json['entity_created'] = datetime.now()
-            new_entry = self._model.from_dict(request.json)
-            new_entry.insert()
-            return '', 200
-        except:
-            logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
-            raise
+        all_jsons = request.json.get('Data', [])
+        for json_entry in all_jsons:
+            try:
+                if 'data_type_id' not in json_entry:
+                    json_entry['data_type_id'] = _type
+                if 'data_source_id' not in request.json:
+                    json_entry['data_source_id'] = _source
+                if 'entity_created' not in request.json:
+                    json_entry['entity_created'] = datetime.now()
+                new_entry = self._model.from_dict(json_entry)
+                new_entry.insert()
+            except IntegrityError:
+                self._model.rollback()
+                return {'error': 'Integrity violated, either duplicate record or non-existent source / type'}, 400
+            except:
+                self._model.rollback()
+                logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
+                raise
+        self._model.commit()
+        return '', 200
 
-    def get(self, _id = None):
+    def get(self, _source, _type, _end_date = None, _start_date = None):
         rv, rc = super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
         if self.format == 'google.table':
             rv = _create_google_table(rv)
