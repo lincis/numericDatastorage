@@ -3,6 +3,8 @@ from flask_restful import Resource, Api, reqparse
 from flask_sqlalchemy import SQLAlchemy, Model
 from .config import Config
 from sqlalchemy import inspect
+from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
@@ -44,7 +46,12 @@ class RestModel(Model):
     def to_dict(self, _cols):
         val_dict = {}
         for col in _cols:
-            val_dict[col] = self.__getattribute__(col)
+            value = self.__getattribute__(col)
+            if isinstance(value, datetime):
+                value = value.isoformat()
+            elif isinstance(value, Decimal):
+                value = float(value)
+            val_dict[col] = value
         return val_dict
 
     @classmethod

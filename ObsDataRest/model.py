@@ -45,3 +45,11 @@ class DataModel(db.Model):
     value = db.Column(db.Numeric())
     def __repr__(self):
         return '<Data entry %r>' % self.value
+
+    @classmethod
+    def get(cls, src, type, start_date, end_date):
+        cls.query.all()#\
+            # filter(cls.data_source_id == src).\
+            # filter(cls.data_type_id == type)#.\
+            # filter(cls.entity_created >= start_date).\
+            # filter(cls.entity_created <= end_date)

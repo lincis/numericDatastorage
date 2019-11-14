@@ -140,14 +140,21 @@ class Data(_ODRBase):
                 self._model.rollback()
                 logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
                 raise
-        self._model.commit()
         return '', 200
 
     def get(self, _source, _type, _end_date = None, _start_date = None):
-        rv, rc = super(Data, self).get(self.parents['values'] + [self.offset, self.limit])
-        if self.format == 'google.table':
-            rv = _create_google_table(rv)
-        return rv, rc
+        if not _start_date:
+            _start_date = '1900-01-01T00:00:00'
+        if not _end_date:
+            _end_date = '2999-12-31T00:00:00'
+        # objs = self._model.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
+        objs = db.session.query(self._model).all()#.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
+        print(objs)
+        if not objs:
+            return '', 404
+        if not len(objs):
+            return '', 404
+        return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
 
 api.add_resource(DataSources,
         '/sources/<string:_id>',
