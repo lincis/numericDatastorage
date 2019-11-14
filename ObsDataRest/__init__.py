@@ -13,19 +13,23 @@ class RestModel(Model):
     def insert(self, commit = True):
         db.session.add(self)
         if commit:
-            db.session.commit()
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                raise
 
     @staticmethod
     def commit():
         db.session.commit()
 
-    @staticmethod
-    def rollback():
-        db.session.rollback()
-
     def update(self):
         db.session.flush()
-        db.session.commit()
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+            raise
 
     @classmethod
     def get(cls, _id):

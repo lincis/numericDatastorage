@@ -134,10 +134,8 @@ class Data(_ODRBase):
                 new_entry = self._model.from_dict(json_entry)
                 new_entry.insert()
             except IntegrityError:
-                self._model.rollback()
                 return {'error': 'Integrity violated, either duplicate record or non-existent source / type'}, 400
             except:
-                self._model.rollback()
                 logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
                 raise
         return '', 200
