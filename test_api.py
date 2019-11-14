@@ -127,11 +127,25 @@ class TestData:
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
-    @pytest.mark.parametrize('offset', (0, 100))
-    @pytest.mark.parametrize('limit', (0, 5, 20))
-    def test_data_get(self, src, typ, offset, limit):
-        r = self.client.get('/data/?DataSourceID=%s&DataTypeID=%s&offset=%s&limit=%s' % (src, typ, offset, limit))
-        if 'Junk' in [src, typ] or offset or not limit:
+    def test_dates(self, src, typ):
+        r = self.client.get('/data/dates/%s/%s' % (src, typ))
+        if not (src and typ):
+            assert r.status_code == 404
+            return
+        assert r.status_code == 200
+        r_data = json.loads(r.data.decode('utf-8'))
+        if 'Junk' in [src, typ]:
+            assert r_data.get('max_date') == None
+            assert r_data.get('min_date') == None
+        else:
+            assert r_data.get('max_date')
+            assert r_data.get('min_date')
+
+    @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
+    @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
+    def test_data_get(self, src, typ):
+        r = self.client.get('/data/%s/%s' % (src, typ))
+        if 'Junk' in [src, typ]:
             assert r.status_code == 404
         else:
             assert r.status_code == 200

@@ -125,10 +125,12 @@ class Data(_ODRBase):
             try:
                 if 'data_type_id' not in json_entry:
                     json_entry['data_type_id'] = _type
-                if 'data_source_id' not in request.json:
+                if 'data_source_id' not in json_entry:
                     json_entry['data_source_id'] = _source
-                if 'entity_created' not in request.json:
+                if 'entity_created' not in json_entry:
                     json_entry['entity_created'] = datetime.now()
+                else:
+                    json_entry['entity_created'] = parser.parse(json_entry['entity_created'])
                 new_entry = self._model.from_dict(json_entry)
                 new_entry.insert()
             except IntegrityError:
@@ -160,7 +162,18 @@ api.add_resource(Data,
         '/data/<string:_source>/<string:_type>/<string:_end_date>',
         '/data/<string:_source>/<string:_type>/<string:_end_date>/<string:_start_date>',
     )
-@app.route('/data/dates')
-def get_data_dates():
-    res = db.session.query(func.max(DataModel.entity_created).label('max_date'), func.min(DataModel.entity_created).label('min_date')).one()
-    return res, 200
+@app.route('/data/dates/<string:_source>/<string:_type>')
+def get_data_dates(_source, _type):
+    logging.info('%s.%s(%s, %s)' % ('Data', 'get_dates', _source, _type))
+    res = db.session.query(
+        func.max(DataModel.entity_created).label('max_date'), func.min(DataModel.entity_created).label('min_date')
+    ).filter(
+        DataModel.data_source_id == _source
+    ).filter(
+        DataModel.data_type_id == _type
+    ).one()
+    logging.debug('%s.%s(%s, %s) = %s' % ('Data', 'get_dates', _source, _type, res))
+    return {
+        'min_date': res.min_date.isoformat() if res.min_date else None
+        , 'max_date': res.max_date.isoformat() if res.max_date else None
+    }, 200
