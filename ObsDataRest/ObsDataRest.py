@@ -18,20 +18,7 @@ from flask_jwt_extended import create_access_token, jwt_required
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
 config.read(os.path.join(mypath,'ObsDataRest.cfg'))
-# app.config['network_read'] = config.get('network_access', 'read', fallback = None)
-# app.config['network_write'] = config.get('network_access', 'write', fallback = None)
-# app.config['logfile'] = config.get('log', 'path', fallback = '%s.log' % __name__)
 db_file = os.path.join(mypath,config['database']['path'])
-
-def init_db(path = None):
-    if not path:
-        path = getattr(g, 'db_file', db_file)
-        with app.app_context():
-            conn, cursor = get_conn(path, True)
-            with app.open_resource('struct.sql', mode='r') as f:
-                cursor.executescript(f.read())
-                conn.commit()
-                g.db_file = path
 
 logging.basicConfig(
     filename = app.config.get('logfile'),
@@ -45,20 +32,6 @@ model_classes = {
     'DataTypes': DataTypesModel,
     'Data': DataModel
 }
-
-# def _limit_access(mode, remote_addr):
-#     network_def = app.config.get('network_%s' % mode, None)
-#     if not network_def:
-#         return
-#     if (ipaddress.ip_address(remote_addr) not in ipaddress.ip_network(network_def)):
-#         abort(403)  # Forbidden
-# @app.before_request
-# def limit_remote_addr():
-#     if request.method in ['PUT', 'POST', 'DELETE']:
-#         mode = 'write'
-#     else:
-#         mode = 'read'
-#     return _limit_access(mode, request.remote_addr)
 
 class _ODRBase(Resource):
     def __init__(self):

@@ -20,10 +20,6 @@ class RestModel(Model):
                 db.session.rollback()
                 raise
 
-    @staticmethod
-    def commit():
-        db.session.commit()
-
     def update(self):
         db.session.flush()
         try:
