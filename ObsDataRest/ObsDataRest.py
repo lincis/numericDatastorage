@@ -13,6 +13,8 @@ from . import app, api, db
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
+from flask_jwt_extended import create_access_token, jwt_required
+
 mypath = os.path.dirname(os.path.realpath(__file__))
 config = configparser.ConfigParser()
 config.read(os.path.join(mypath,'ObsDataRest.cfg'))
@@ -76,6 +78,7 @@ class _ODRBase(Resource):
         else:
             return {self.__class__.__name__: []}, 404
 
+    @jwt_required
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', _id, request.json))
         if not _id:
@@ -104,6 +107,7 @@ class _ODRBase(Resource):
             raise
         return '',rc
 
+    @jwt_required
     def delete(self, _id):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
         if not self._model.delete(_id):
@@ -130,6 +134,7 @@ class Data(_ODRBase):
         new_entry = self._model.from_dict(json_entry)
         new_entry.insert()
 
+    @jwt_required
     def put(self, _source, _type, **kwargs):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', _source, _type, request.json))
         all_jsons = request.json.get('Data', [])
@@ -161,6 +166,32 @@ class Data(_ODRBase):
             return '', 404
         return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
 
+auth_parser = reqparse.RequestParser()
+auth_parser.add_argument('username', help = 'This field cannot be blank', required = True)
+auth_parser.add_argument('password', help = 'This field cannot be blank', required = True)
+
+def add_user(username, password):
+    user = UserModel(username = username)
+    user.set_password(password)
+    user.insert()
+
+class Authorize(Resource):
+    def post(self):
+        data = auth_parser.parse_args()
+        current_user = UserModel.find_by_username(data['username'])
+
+        if not current_user:
+            return {'message': 'Wrong credentials'}, 403
+
+        if current_user.check_password(data['password']):
+            access_token = create_access_token(identity = data['username'])
+            return {
+                'message': 'Logged in as {}'.format(current_user.username),
+                'access_token': access_token
+                }, 200
+        else:
+            return {'message': 'Wrong credentials'}, 403
+
 api.add_resource(DataSources,
         '/sources/<string:_id>',
         '/sources/'
@@ -173,6 +204,9 @@ api.add_resource(Data,
         '/data/<string:_source>/<string:_type>',
         '/data/<string:_source>/<string:_type>/<string:_end_date>',
         '/data/<string:_source>/<string:_type>/<string:_end_date>/<string:_start_date>',
+    )
+api.add_resource(Authorize,
+        '/authorize'
     )
 @app.route('/data/dates/<string:_source>/<string:_type>')
 def get_data_dates(_source, _type):

@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
+from flask_jwt_extended import JWTManager
 
 class RestModel(Model):
     def insert(self, commit = True):
@@ -83,6 +84,7 @@ app.config.from_object(Config)
 api = Api(app)
 db = SQLAlchemy(model_class = RestModel)
 db.init_app(app)
+jwt = JWTManager(app)
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -93,4 +95,4 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 from .model import UserModel, DataSourcesModel, DataTypesModel, DataModel
-from .ObsDataRest import init_db
+from .ObsDataRest import add_user

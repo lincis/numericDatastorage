@@ -6,7 +6,7 @@ import random
 from dateutil import parser
 from datetime import timedelta
 from time import mktime
-from ObsDataRest import app, db
+from ObsDataRest import app, db, add_user
 import math
 source_id = str(uuid.uuid4())
 type_id = str(uuid.uuid4())
@@ -19,10 +19,22 @@ type_2 = 'TYPE:2'
 n = 5
 
 @pytest.fixture(autouse = True, scope = 'session')
-def database():
-    print(db)
+def token():
+    global token_value
     with app.app_context():
         db.create_all()
+        with app.test_client() as client:
+            add_user('Username', 'Password')
+            r = client.post('/authorize',
+                data = json.dumps({'username': 'Username', 'password': 'Password'})
+                , content_type = 'application/json'
+            )
+            data = json.loads(r.data.decode('utf-8'))
+            token_value = data.get('access_token', 'none')
+            yield data.get('access_token', 'none')
+
+def header(token):
+    return {'Authorization': 'Bearer %s' % token}
 
 def random_datetime(start, max_diff):
     diff = timedelta(days = random.randint(0, max_diff), seconds = random.randint(0, 86399))
@@ -35,17 +47,18 @@ class TestDataSources:
 
     @pytest.mark.last
     @pytest.mark.parametrize('path,_id',[('sources', source_id), ('types', type_id)])
-    def test_delete(self, path, _id):
-        r = self.client.delete('/%s/%s' % (path, _id))
+    def test_delete(self, path, _id, token):
+        r = self.client.delete('/%s/%s' % (path, _id), headers = header(token))
         assert r.status_code == 200
 
     @pytest.mark.first
     @pytest.mark.parametrize('code',(200,201))
-    def test_source_post(self, code):
+    def test_source_post(self, code, token):
         r = self.client.put(
             '/sources/%s' % (source_id),
             data = json.dumps({ 'name': 'Test', 'description': 'Test description' }),
-            content_type = 'application/json'
+            content_type = 'application/json',
+            headers = header(token)
         )
         assert r.status_code == code
 
@@ -63,10 +76,12 @@ class TestDataSources:
 
     @pytest.mark.first
     @pytest.mark.parametrize('code',(200,201,405))
-    def test_type_post(self, code):
+    def test_type_post(self, code, token):
         r = self.client.put('/types/%s' % (type_id if code < 400 else ''),
             data = json.dumps({ 'name': 'Test', 'description': 'Test description', 'units': 'Test units' }),
-            content_type = 'application/json')
+            content_type = 'application/json',
+            headers = header(token)
+        )
         assert r.status_code == code
 
     @pytest.mark.parametrize('id',('',type_id, 'False'))
@@ -86,23 +101,29 @@ class TestData:
         self.client = app.test_client()
         r = self.client.put('/sources/%s' % (src_1),
             data = json.dumps({ 'name': 'Test 1', 'description': 'Test source 1' }),
+            headers = header(token_value),
             content_type = 'application/json')
         r = self.client.put('/sources/%s' % (src_2),
             data = json.dumps({ 'name': 'Test 2', 'description': 'Test source 2' }),
+            headers = header(token_value),
             content_type = 'application/json')
         r = self.client.put('/types/%s' % (type_1),
             data = json.dumps({ 'name': 'Test 1', 'description': 'Test type 1', 'units': 'unit1' }),
+            headers = header(token_value),
             content_type = 'application/json')
         r = self.client.put('/types/%s' % (type_2),
             data = json.dumps({ 'name': 'Test 2', 'description': 'Test type 2', 'units': 'unit2' }),
+            headers = header(token_value),
             content_type = 'application/json')
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
-    def test_data_put(self, src, typ):
+    def test_data_put(self, src, typ, token):
         r = self.client.put('/data/%s/%s' % (src, typ),
             data = json.dumps({'Data': [{ 'value': 25.5 },]}),
-            content_type = 'application/json')
+            content_type = 'application/json',
+            headers = header(token)
+        )
         if not (src and typ):
             rc = 404
         elif 'Junk' in [src, typ]:
@@ -113,11 +134,13 @@ class TestData:
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
-    def test_data_put_bulk(self, src, typ):
+    def test_data_put_bulk(self, src, typ, token):
         payload = []
         for o in zip([random_datetime('2017-01-01T00:00', 365) for i in range(n)], [random.uniform(1,100) for i in range(n)]):
             payload.append({'entity_created': o[0], 'value': o[1]})
-        r = self.client.put('/data/%s/%s' % (src, typ), data = json.dumps({'Data': payload}), content_type = 'application/json')
+        r = self.client.put('/data/%s/%s' % (src, typ), data = json.dumps({'Data': payload}), content_type = 'application/json',
+            headers = header(token)
+        )
         if not (src and typ):
             rc = 404
         elif 'Junk' in [src,typ]:
