@@ -7,6 +7,7 @@ from dateutil import parser
 from datetime import timedelta
 from time import mktime
 from ObsDataRest import app, db
+import math
 source_id = str(uuid.uuid4())
 type_id = str(uuid.uuid4())
 
@@ -15,6 +16,7 @@ src_2 = 'SRC:2'
 type_1 = 'TYPE:1'
 type_2 = 'TYPE:2'
 
+n = 5
 
 @pytest.fixture(autouse = True, scope = 'session')
 def database():
@@ -112,7 +114,6 @@ class TestData:
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put_bulk(self, src, typ):
-        n = 5
         payload = []
         for o in zip([random_datetime('2017-01-01T00:00', 365) for i in range(n)], [random.uniform(1,100) for i in range(n)]):
             payload.append({'entity_created': o[0], 'value': o[1]})
@@ -127,6 +128,7 @@ class TestData:
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
+    @pytest.mark.last
     def test_dates(self, src, typ):
         r = self.client.get('/data/dates/%s/%s' % (src, typ))
         if not (src and typ):
@@ -143,6 +145,7 @@ class TestData:
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
+    @pytest.mark.last
     def test_data_get(self, src, typ):
         r = self.client.get('/data/%s/%s' % (src, typ))
         if 'Junk' in [src, typ] or not (src and typ):
@@ -151,6 +154,48 @@ class TestData:
         assert r.status_code == 200
         data = json.loads(r.data.decode('utf-8'))['Data']
         assert len(data)
+
+    @pytest.mark.parametrize('src', (src_1, src_2))
+    @pytest.mark.parametrize('typ', (type_1, type_2))
+    @pytest.mark.parametrize('start_date', ('2016-01-01', '2019-01-01', '2999-01-01', ''))
+    @pytest.mark.parametrize('end_date', ('2016-01-01', '2019-01-01', '2999-01-01', ''))
+    @pytest.mark.last
+    def test_data_get_by_date(self, src, typ, start_date, end_date):
+        r = self.client.get('/data/%s/%s/%s/%s' % (src, typ, end_date, start_date))
+        # print(json.loads(r.data.decode('utf-8')))
+        if start_date == end_date or not (start_date and end_date) or start_date == '2999-01-01' or end_date == '2016-01-01':
+            assert r.status_code == 404
+            return
+        assert r.status_code == 200
+        data = json.loads(r.data.decode('utf-8'))['Data']
+        dt_start_date = parser.parse(start_date)
+        dt_end_date = parser.parse(end_date)
+        if dt_start_date < parser.parse('2019-01-01'):
+            if dt_end_date < parser.parse('2999-01-01'):
+                assert len(data) == n
+            else:
+                assert len(data) == n + 1
+        else:
+            assert len(data) == 1
+            assert math.isclose(data[0]['value'], 25.5)
+
+    @pytest.mark.parametrize('src', (src_1, src_2))
+    @pytest.mark.parametrize('typ', (type_1, type_2))
+    @pytest.mark.parametrize('end_date', ('2016-01-01', '2019-01-01', '2999-01-01'))
+    @pytest.mark.last
+    def test_data_get_by_end_date(self, src, typ, end_date):
+        r = self.client.get('/data/%s/%s/%s' % (src, typ, end_date))
+        # print(json.loads(r.data.decode('utf-8')))
+        if end_date == '2016-01-01':
+            assert r.status_code == 404
+            return
+        assert r.status_code == 200
+        data = json.loads(r.data.decode('utf-8'))['Data']
+        dt_end_date = parser.parse(end_date)
+        if dt_end_date < parser.parse('2999-01-01'):
+            assert len(data) == n
+        else:
+            assert len(data) == n + 1
 
 # class TestAccess:
 #     def setup_class(self):

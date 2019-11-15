@@ -118,21 +118,24 @@ class DataTypes(_ODRBase):
     pass
 
 class Data(_ODRBase):
+    def _insert_one(self, _source, _type, json_entry):
+        if 'data_type_id' not in json_entry:
+            json_entry['data_type_id'] = _type
+        if 'data_source_id' not in json_entry:
+            json_entry['data_source_id'] = _source
+        if 'entity_created' not in json_entry:
+            json_entry['entity_created'] = datetime.now()
+        else:
+            json_entry['entity_created'] = parser.parse(json_entry['entity_created'])
+        new_entry = self._model.from_dict(json_entry)
+        new_entry.insert()
+
     def put(self, _source, _type, **kwargs):
         logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', _source, _type, request.json))
         all_jsons = request.json.get('Data', [])
         for json_entry in all_jsons:
             try:
-                if 'data_type_id' not in json_entry:
-                    json_entry['data_type_id'] = _type
-                if 'data_source_id' not in json_entry:
-                    json_entry['data_source_id'] = _source
-                if 'entity_created' not in json_entry:
-                    json_entry['entity_created'] = datetime.now()
-                else:
-                    json_entry['entity_created'] = parser.parse(json_entry['entity_created'])
-                new_entry = self._model.from_dict(json_entry)
-                new_entry.insert()
+                self._insert_one(_source, _type, json_entry)
             except IntegrityError:
                 return {'error': 'Integrity violated, either duplicate record or non-existent source / type'}, 400
             except:
