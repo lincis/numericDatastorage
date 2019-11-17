@@ -8,7 +8,13 @@ before_script:
 install:
   - pip install -r requirements.txt
   - pip install coverage coveralls
+deploy:
+  - provider: script
+    - script: chmod 600 deploy_rsa; ssh -o StrictHostKeyChecking=no -i deploy_rsa $DEPLOY_HOST ~/deploy-nds.sh
 script:
   - coverage run --source=ObsDataRest -m pytest .
 after_success:
   - coveralls
+before_install:
+  - openssl aes-256-cbc -K $encrypted_9c98d1b39b99_key -iv $encrypted_9c98d1b39b99_iv
+    -in deploy_rsa.enc -out deploy_rsa -d
