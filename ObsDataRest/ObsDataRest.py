@@ -136,10 +136,6 @@ class Data(_ODRBase):
             return '', 404
         return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
 
-auth_parser = reqparse.RequestParser()
-auth_parser.add_argument('username', help = 'This field cannot be blank', required = True)
-auth_parser.add_argument('password', help = 'This field cannot be blank', required = True)
-
 def add_user(username, password):
     user = UserModel(username = username)
     user.set_password(password)
@@ -147,14 +143,13 @@ def add_user(username, password):
 
 class Authorize(Resource):
     def post(self):
-        data = auth_parser.parse_args()
-        current_user = UserModel.find_by_username(data['username'])
+        current_user = UserModel.find_by_username(request.json.get('username', None))
 
         if not current_user:
             return {'message': 'Wrong credentials'}, 403
 
-        if current_user.check_password(data['password']):
-            access_token = create_access_token(identity = data['username'])
+        if current_user.check_password(request.json.get('password', None)):
+            access_token = create_access_token(identity = request.json.get('username', None))
             return {
                 'message': 'Logged in as {}'.format(current_user.username),
                 'access_token': access_token

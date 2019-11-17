@@ -1,4 +1,4 @@
-from ObsDataRest import app, db, UserModel
+from ObsDataRest import app, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
 from sqlalchemy.exc import IntegrityError
 import os
 
