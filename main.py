@@ -1,5 +1,4 @@
 from ObsDataRest import app, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
-from sqlalchemy.exc import IntegrityError
 import os
 
 if __name__ == '__main__':

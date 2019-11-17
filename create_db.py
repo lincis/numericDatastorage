@@ -1,4 +1,5 @@
 from ObsDataRest import app, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
+from sqlalchemy.exc import IntegrityError
 
 with app.app_context():
     db.create_all()
