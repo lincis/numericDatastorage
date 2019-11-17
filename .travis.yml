@@ -10,7 +10,7 @@ install:
   - pip install coverage coveralls
 deploy:
   - provider: script
-    - script: bash ./deploy.sh
+    script: bash ./deploy.sh
 script:
   - coverage run --source=ObsDataRest -m pytest .
 after_success:
