@@ -17,4 +17,4 @@ after_success:
   - coveralls
 before_install:
   - openssl aes-256-cbc -K $encrypted_9c98d1b39b99_key -iv $encrypted_9c98d1b39b99_iv
-    -in deploy_rsa.enc -out deploy_rsa -d
+  -in deploy_rsa.enc -out deploy_rsa -d
