@@ -95,11 +95,7 @@ class DataTypes(_ODRBase):
     pass
 
 class Data(_ODRBase):
-    def _insert_one(self, _source, _type, json_entry):
-        if 'data_type_id' not in json_entry:
-            json_entry['data_type_id'] = _type
-        if 'data_source_id' not in json_entry:
-            json_entry['data_source_id'] = _source
+    def _insert_one(self, json_entry):
         if 'entity_created' not in json_entry:
             json_entry['entity_created'] = datetime.now()
         else:
@@ -108,12 +104,12 @@ class Data(_ODRBase):
         new_entry.insert()
 
     @jwt_required
-    def put(self, _source, _type, **kwargs):
-        logging.info('%s.%s(%s, %s, %s)' % (self.__class__.__name__, 'put', _source, _type, request.json))
+    def put(self):
+        logging.info('%s.%s(%s)' % (self.__class__.__name__, 'put', request.json))
         all_jsons = request.json.get('Data', [])
         for json_entry in all_jsons:
             try:
-                self._insert_one(_source, _type, json_entry)
+                self._insert_one(json_entry)
             except IntegrityError:
                 return {'error': 'Integrity violated, either duplicate record or non-existent source / type'}, 400
             except:
@@ -127,6 +123,7 @@ class Data(_ODRBase):
         if not _end_date:
             _end_date = '2999-12-31T00:00:00'
         # objs = self._model.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
+        print('%s.%s(%s)' % (self.__class__.__name__, 'put', request.json))
         objs = db.session.query(self._model)\
             .filter(self._model.data_type_id == _type)\
             .filter(self._model.data_source_id == _source)\
@@ -174,6 +171,7 @@ api.add_resource(DataTypes,
         '/types/'
     )
 api.add_resource(Data,
+        '/data',
         '/data/<string:_source>/<string:_type>',
         '/data/<string:_source>/<string:_type>/<string:_end_date>',
         '/data/<string:_source>/<string:_type>/<string:_end_date>/<string:_start_date>',

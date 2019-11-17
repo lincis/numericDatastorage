@@ -119,14 +119,12 @@ class TestData:
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put(self, src, typ, token):
-        r = self.client.put('/data/%s/%s' % (src, typ),
-            data = json.dumps({'Data': [{ 'value': 25.5 },]}),
+        r = self.client.put('/data',
+            data = json.dumps({'Data': [{ 'value': 25.5, 'data_type_id': typ, 'data_source_id': src },]}),
             content_type = 'application/json',
             headers = header(token)
         )
-        if not (src and typ):
-            rc = 404
-        elif 'Junk' in [src, typ]:
+        if 'Junk' in [src, typ] or not (src and typ):
             rc = 400
         else:
             rc = 200
@@ -137,13 +135,11 @@ class TestData:
     def test_data_put_bulk(self, src, typ, token):
         payload = []
         for o in zip([random_datetime('2017-01-01T00:00', 365) for i in range(n)], [random.uniform(1,100) for i in range(n)]):
-            payload.append({'entity_created': o[0], 'value': o[1]})
-        r = self.client.put('/data/%s/%s' % (src, typ), data = json.dumps({'Data': payload}), content_type = 'application/json',
+            payload.append({'data_type_id': typ, 'data_source_id': src, 'entity_created': o[0], 'value': o[1]})
+        r = self.client.put('/data', data = json.dumps({'Data': payload}), content_type = 'application/json',
             headers = header(token)
         )
-        if not (src and typ):
-            rc = 404
-        elif 'Junk' in [src,typ]:
+        if 'Junk' in [src,typ] or not (src and typ):
             rc = 400
         else:
             rc = 200
