@@ -1,8 +1,10 @@
 aniso8601==8.0.0
+apispec==3.1.0
 atomicwrites==1.3.0
 attrs==19.3.0
 Click==7.0
 Flask==1.1.1
+flask-apispec==0.8.3
 Flask-JWT-Extended==3.24.1
 Flask-RESTful==0.3.7
 Flask-SQLAlchemy==2.4.1
@@ -10,9 +12,12 @@ importlib-metadata==0.23
 itsdangerous==1.1.0
 Jinja2==2.10.3
 MarkupSafe==1.1.1
+marshmallow==3.2.2
 more-itertools==7.2.0
 packaging==19.2
+pkg-resources==0.0.0
 pluggy==0.13.0
+psycopg2==2.8.4
 py==1.8.0
 PyJWT==1.7.1
 pyparsing==2.4.5
@@ -24,6 +29,6 @@ pytz==2019.3
 six==1.13.0
 SQLAlchemy==1.3.11
 wcwidth==0.1.7
+webargs==5.5.2
 Werkzeug==0.16.0
 zipp==0.6.0
-psycopg2==2.8.4
