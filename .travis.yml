@@ -9,8 +9,8 @@ install:
   - pip install -r requirements.txt
   - pip install coverage coveralls
 deploy:
-  - skip_cleanup: true
   - provider: script
+  - skip_cleanup: true
     script: bash ./deploy.sh
 script:
   - coverage run --source=ObsDataRest -m pytest .
