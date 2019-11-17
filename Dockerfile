@@ -1,5 +1,5 @@
-FROM tiangolo/uwsgi-nginx-flask
+FROM tiangolo/uwsgi-nginx-flask:python-3.7
 RUN uname -a
-RUN apt-get install libpq-dev
+RUN apt-get -y --no-install-recommends install libpq-dev
 COPY . /app
 RUN pip install -r requirements.txt

@@ -1,9 +1,8 @@
 import configparser
 import os
 from .model import UserModel, DataTypesModel, DataSourcesModel, DataModel
-import ipaddress
 
-from flask import Flask, request, g, abort, jsonify
+from flask import request
 from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
@@ -14,11 +13,6 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from flask_jwt_extended import create_access_token, jwt_required
-
-mypath = os.path.dirname(os.path.realpath(__file__))
-config = configparser.ConfigParser()
-config.read(os.path.join(mypath,'ObsDataRest.cfg'))
-db_file = os.path.join(mypath,config['database']['path'])
 
 logging.basicConfig(
     filename = app.config.get('logfile'),

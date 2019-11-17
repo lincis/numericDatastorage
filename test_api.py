@@ -1,11 +1,9 @@
 import json
 import pytest
 import uuid
-import sqlite3
 import random
 from dateutil import parser
 from datetime import timedelta
-from time import mktime
 from ObsDataRest import app, db, add_user
 import math
 source_id = str(uuid.uuid4())
@@ -62,11 +60,11 @@ class TestDataSources:
         )
         assert r.status_code == code
 
-    @pytest.mark.parametrize('id',('',source_id, 'False'))
-    def test_source_get(self, id):
-        r = self.client.get('/sources/%s' % (id),
+    @pytest.mark.parametrize('_id',('',source_id, 'False'))
+    def test_source_get(self, _id):
+        r = self.client.get('/sources/%s' % (_id),
             content_type = 'application/json')
-        if id == 'False':
+        if _id == 'False':
             assert r.status_code == 404
             return
         print(json.loads(r.data.decode('utf-8')))
@@ -84,11 +82,11 @@ class TestDataSources:
         )
         assert r.status_code == code
 
-    @pytest.mark.parametrize('id',('',type_id, 'False'))
-    def test_type_get(self, id):
-        r = self.client.get('/types/%s' % (id),
+    @pytest.mark.parametrize('_id',('',type_id, 'False'))
+    def test_type_get(self, _id):
+        r = self.client.get('/types/%s' % (_id),
             content_type = 'application/json')
-        if id == 'False':
+        if _id == 'False':
             assert r.status_code == 404
             return
         r_data = json.loads(r.data.decode('utf-8'))['DataTypes'].pop()
@@ -99,19 +97,19 @@ class TestData:
     def setup_class(self):
         app.testing = True
         self.client = app.test_client()
-        r = self.client.put('/sources/%s' % (src_1),
+        self.client.put('/sources/%s' % (src_1),
             data = json.dumps({ 'name': 'Test 1', 'description': 'Test source 1' }),
             headers = header(token_value),
             content_type = 'application/json')
-        r = self.client.put('/sources/%s' % (src_2),
+        self.client.put('/sources/%s' % (src_2),
             data = json.dumps({ 'name': 'Test 2', 'description': 'Test source 2' }),
             headers = header(token_value),
             content_type = 'application/json')
-        r = self.client.put('/types/%s' % (type_1),
+        self.client.put('/types/%s' % (type_1),
             data = json.dumps({ 'name': 'Test 1', 'description': 'Test type 1', 'units': 'unit1' }),
             headers = header(token_value),
             content_type = 'application/json')
-        r = self.client.put('/types/%s' % (type_2),
+        self.client.put('/types/%s' % (type_2),
             data = json.dumps({ 'name': 'Test 2', 'description': 'Test type 2', 'units': 'unit2' }),
             headers = header(token_value),
             content_type = 'application/json')
