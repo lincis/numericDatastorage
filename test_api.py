@@ -122,11 +122,14 @@ class TestData:
             content_type = 'application/json',
             headers = header(token)
         )
+        assert r.status_code == 200
+        r_data = json.loads(r.data.decode('utf-8'))
+        assert 'results' in r_data
+        assert len(r_data['results']) == 1
         if 'Junk' in [src, typ] or not (src and typ):
-            rc = 400
+            assert 'error' in r_data['results'][0]
         else:
-            rc = 200
-        assert r.status_code == rc
+            assert 'inserted' in r_data['results'][0]
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
@@ -137,11 +140,14 @@ class TestData:
         r = self.client.put('/data', data = json.dumps({'Data': payload}), content_type = 'application/json',
             headers = header(token)
         )
-        if 'Junk' in [src,typ] or not (src and typ):
-            rc = 400
+        assert r.status_code == 200
+        r_data = json.loads(r.data.decode('utf-8'))
+        assert 'results' in r_data
+        assert len(r_data['results']) == n
+        if 'Junk' in [src, typ] or not (src and typ):
+            assert 'error' in r_data['results'][0]
         else:
-            rc = 200
-        assert r.status_code == rc
+            assert 'inserted' in r_data['results'][0]
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))

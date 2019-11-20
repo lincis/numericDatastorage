@@ -52,35 +52,37 @@ class _ODRBase(Resource):
             return 'Please specify ID', 405
         try:
             if _id:
-                existing_entry = self._model.get(_id)
+                entry = self._model.get(_id)
             else:
-                existing_entry = None
-            if existing_entry:
+                entry = None
+            if entry:
                 for col in self.cols:
                     value = request.json.get(col, None)
                     if value:
-                        setattr(existing_entry, col, value)
-                existing_entry.update()
+                        setattr(entry, col, value)
+                entry.update()
                 rc = 201
             else:
                 logging.debug('ID: %s' % _id)
                 if 'id' not in request.json:
                     request.json['id'] = _id
-                new_entry = self._model.from_dict(request.json)
-                new_entry.insert()
+                entry = self._model.from_dict(request.json)
+                entry.insert()
                 rc = 200
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
-        return '',rc
+        return {'upserted': str(entry)}, rc
 
     @jwt_required
     def delete(self, _id):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
-        if not self._model.delete(_id):
-            return '', 404
+        item = self._model.get(_id)
+        if not item:
+            return {'error': 'No entry with ID %s' % _is}, 404
         else:
-            return '', 200
+            self._model.delete(_id)
+            return {'deleted': str(item)}, 200
 
 class DataSources(_ODRBase):
     pass
@@ -96,20 +98,22 @@ class Data(_ODRBase):
             json_entry['entity_created'] = parser.parse(json_entry['entity_created'])
         new_entry = self._model.from_dict(json_entry)
         new_entry.insert()
+        return new_entry
 
     @jwt_required
     def put(self):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'put', request.json))
         all_jsons = request.json.get('Data', [])
+        response = []
         for json_entry in all_jsons:
             try:
-                self._insert_one(json_entry)
+                response.append({'inserted': str(self._insert_one(json_entry))})
             except IntegrityError:
-                return {'error': 'Integrity violated, either duplicate record or non-existent source / type'}, 400
+                response.append({'error': 'Integrity violated, either duplicate record or non-existent source / type for %s' % json_entry})
             except:
                 logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
                 raise
-        return '', 200
+        return {'results': response}, 200
 
     def get(self, _source, _type, _end_date = None, _start_date = None):
         if not _start_date:
@@ -125,9 +129,9 @@ class Data(_ODRBase):
             .filter(self._model.entity_created <= parser.parse(_end_date))\
             .all()
         if not objs:
-            return '', 404
+            return {'error': 'no matching items found for %s/%s in interval [%s, %s]' % (_source, _type, _start_date, _end_date)}, 404
         if not len(objs):
-            return '', 404
+            return {'error': 'no matching items found for %s/%s in interval [%s, %s]' % (_source, _type, _start_date, _end_date)}, 404
         return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
 
 def add_user(username, password):
@@ -140,7 +144,7 @@ class Authorize(Resource):
         current_user = UserModel.find_by_username(request.json.get('username', None))
 
         if not current_user:
-            return {'message': 'Wrong credentials'}, 403
+            return {'error': 'Invalid credentials'}, 403
 
         if current_user.check_password(request.json.get('password', None)):
             access_token = create_access_token(identity = request.json.get('username', None))
@@ -149,7 +153,7 @@ class Authorize(Resource):
                 'access_token': access_token
                 }, 200
         else:
-            return {'message': 'Wrong credentials'}, 403
+            return {'error': 'Invalid credentials'}, 403
 
 api.add_resource(DataSources,
         '/sources/<string:_id>',
