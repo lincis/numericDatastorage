@@ -120,8 +120,6 @@ class Data(_ODRBase):
             _start_date = '1900-01-01T00:00:00'
         if not _end_date:
             _end_date = '2999-12-31T00:00:00'
-        # objs = self._model.get(_source, _type, parser.parse(_end_date), parser.parse(_start_date))
-        print('%s.%s(%s)' % (self.__class__.__name__, 'put', request.json))
         objs = db.session.query(self._model)\
             .filter(self._model.data_type_id == _type)\
             .filter(self._model.data_source_id == _source)\

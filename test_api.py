@@ -67,7 +67,6 @@ class TestDataSources:
         if _id == 'False':
             assert r.status_code == 404
             return
-        print(json.loads(r.data.decode('utf-8')))
         r_data = json.loads(r.data.decode('utf-8'))['DataSources'].pop()
         assert r.status_code == 200
         assert r_data['id'] == source_id
@@ -185,7 +184,6 @@ class TestData:
     @pytest.mark.last
     def test_data_get_by_date(self, src, typ, start_date, end_date):
         r = self.client.get('/data/%s/%s/%s/%s' % (src, typ, end_date, start_date))
-        # print(json.loads(r.data.decode('utf-8')))
         if start_date == end_date or not (start_date and end_date) or start_date == '2999-01-01' or end_date == '2016-01-01':
             assert r.status_code == 404
             return
@@ -208,7 +206,6 @@ class TestData:
     @pytest.mark.last
     def test_data_get_by_end_date(self, src, typ, end_date):
         r = self.client.get('/data/%s/%s/%s' % (src, typ, end_date))
-        # print(json.loads(r.data.decode('utf-8')))
         if end_date == '2016-01-01':
             assert r.status_code == 404
             return
@@ -219,18 +216,3 @@ class TestData:
             assert len(data) == n
         else:
             assert len(data) == n + 1
-
-# class TestAccess:
-#     def setup_class(self):
-#         app.testing = True
-#         self.client = app.test_client()
-#
-#     @pytest.mark.parametrize('mode',('read','write'))
-#     def test_access(self, mode):
-#         app.config['network_%s' % mode] = '192.0.0.0/24'
-#         if mode == 'read':
-#             r = self.client.get('/data/')
-#         else:
-#             r = self.client.delete('/data/')
-#         assert r.status_code == 403
-#         app.config['network_%s' % mode] = None
