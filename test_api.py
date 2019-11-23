@@ -148,22 +148,12 @@ class TestData:
         else:
             assert 'inserted' in r_data['results'][0]
 
-    @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
-    @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     @pytest.mark.last
-    def test_dates(self, src, typ):
-        r = self.client.get('/data/dates/%s/%s' % (src, typ))
-        if not (src and typ):
-            assert r.status_code == 404
-            return
+    def test_dates(self):
+        r = self.client.get('/data/dates')
         assert r.status_code == 200
-        r_data = json.loads(r.data.decode('utf-8'))
-        if 'Junk' in [src, typ]:
-            assert r_data.get('max_date') == None
-            assert r_data.get('min_date') == None
-        else:
-            assert r_data.get('max_date')
-            assert r_data.get('min_date')
+        r_data = json.loads(r.data.decode('utf-8'))['Dates']
+        assert len(r_data) == 4
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))

@@ -170,18 +170,28 @@ api.add_resource(Data,
 api.add_resource(Authorize,
         '/authorize'
     )
-@app.route('/data/dates/<string:_source>/<string:_type>')
-def get_data_dates(_source, _type):
-    logging.info('%s.%s(%s, %s)' % ('Data', 'get_dates', _source, _type))
-    res = db.session.query(
+@app.route('/data/dates')
+def get_data_dates():
+    logging.info('%s.%s()' % ('Data', 'get_dates'))
+    subquery = db.session.query(
+        DataModel.data_source_id, DataModel.data_type_id,
         func.max(DataModel.entity_created).label('max_date'), func.min(DataModel.entity_created).label('min_date')
-    ).filter(
-        DataModel.data_source_id == _source
-    ).filter(
-        DataModel.data_type_id == _type
-    ).one()
-    logging.debug('%s.%s(%s, %s) = %s' % ('Data', 'get_dates', _source, _type, res))
+    ).group_by(DataModel.data_source_id, DataModel.data_type_id).subquery()
+    logging.debug(subquery)
+    final_query = db.session.query(
+        DataSourcesModel.name.label('data_source_name')
+        , DataSourcesModel.description.label('data_source_description')
+        , DataTypesModel.name.label('data_type_name')
+        , DataTypesModel.description.label('data_type_description')
+        , DataTypesModel.units
+        , subquery
+    ).select_from(
+        subquery
+    ).join(DataSourcesModel, DataSourcesModel.id == subquery.c.data_source_id).join(
+        DataTypesModel, DataTypesModel.id == subquery.c.data_type_id
+    ).subquery()
+    results = db.session.query(final_query).all()
+    logging.debug('%s.%s() = %s' % ('Data', 'get_dates', results))
     return {
-        'min_date': res.min_date.isoformat() if res.min_date else None
-        , 'max_date': res.max_date.isoformat() if res.max_date else None
+        'Dates': [{c.name: getattr(r, c.name) for c in final_query.c} for r in results]
     }, 200
