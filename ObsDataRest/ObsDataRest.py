@@ -193,5 +193,5 @@ def get_data_dates():
     results = db.session.query(final_query).all()
     logging.debug('%s.%s() = %s' % ('Data', 'get_dates', results))
     return {
-        'Dates': [{c.name: getattr(r, c.name) for c in final_query.c} for r in results]
+        'Dates': [{key: value.isoformat() if 'date' in key else value for key, value in row._asdict().items()} for row in results]
     }, 200
