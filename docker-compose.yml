@@ -45,3 +45,5 @@ networks:
   default:
     external:
       name: nginx-proxy
+  proxynet:
+    name: shared_network
