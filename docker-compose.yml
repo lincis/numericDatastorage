@@ -19,6 +19,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
+      - proxynet
 
   rest-api:
     depends_on:
