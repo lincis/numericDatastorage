@@ -1,4 +1,4 @@
-from ObsDataRest import app, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
+from ObsDataRest import app
 
 if __name__ == '__main__':
     app.run(host = '0.0.0.0')
