@@ -86,7 +86,7 @@ db = SQLAlchemy(model_class = RestModel)
 db.init_app(app)
 jwt = JWTManager(app)
 
-socketio = SocketIO()
+socketio = SocketIO(logger=True, engineio_logger = True)
 socketio.init_app(app, async_mode = 'gevent', message_queue='redis://')
 
 @event.listens_for(Engine, "connect")

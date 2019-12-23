@@ -16,8 +16,4 @@ if __name__ == '__main__':
         except IntegrityError:
             print("Default user already exists")
             pass
-    try:
-        subprocess.run(["service redis-server start"])
-    except:
-        print("Could not start redis")
     socketio.run(app, debug = True, host = '0.0.0.0')
