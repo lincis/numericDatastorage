@@ -11,8 +11,6 @@ from sqlalchemy import event
 from flask_jwt_extended import JWTManager
 
 from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
-import gevent
-
 
 class RestModel(Model):
     def insert(self, commit = True):
@@ -86,8 +84,8 @@ db = SQLAlchemy(model_class = RestModel)
 db.init_app(app)
 jwt = JWTManager(app)
 
-socketio = SocketIO(logger=True, engineio_logger = True, cors_allowed_origins = '*')
-socketio.init_app(app, async_mode = 'gevent', message_queue='redis://')
+socketio = SocketIO(cors_allowed_origins = '*')
+socketio.init_app(app, async_mode = 'eventlet', message_queue='redis://')
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):

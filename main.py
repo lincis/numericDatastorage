@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+import eventlet
+eventlet.monkey_patch()
 
 from ObsDataRest import app, socketio, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
 from sqlalchemy.exc import IntegrityError
@@ -16,4 +16,4 @@ if __name__ == '__main__':
         except IntegrityError:
             print("Default user already exists")
             pass
-    socketio.run(app, debug = True, host = '0.0.0.0')
+    socketio.run(app, debug = os.environ.get('FLASK_DEBUG', False), host = '0.0.0.0')
