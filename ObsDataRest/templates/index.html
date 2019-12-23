@@ -16,8 +16,8 @@
         if(needle.id == value.id){
           return true
         }
-        return false
       })
+      return false
     }
         $(document).ready(function() {
           // Connect to the Socket.IO server.
@@ -26,20 +26,20 @@
           socket = io("/datasocket");
 
           var plot_data = [];
-          var sources = [];
-          var types = [];
-          var last_values = {}
+          var sources;
+          var types;
+          last_values = {}
 
           // Event handler for new connections.
           // The callback function is invoked when a connection with the
           // server is established.
           socket.on("connect", function() {
               console.log("Connected to socket");
-              $("#current-data").empty()
-              $("#data-source-select").empty()
               $.get("/data/dates", function (data) {
                 console.log("Got dates")
                 console.log(data)
+                $("#current-data").empty()
+                $("#data-source-select").empty()
                 types = []
                 sources = []
                 $.each(data.Dates, function(key, value) {
@@ -55,13 +55,13 @@
                 current_source = $("#data-source-select").val()
                 $.each(types, function(index, value){
                   if(value.source_id == current_source) {
-                    value = 'Waiting for data'
+                    data_value = 'Waiting for data'
                     if(current_source + "-" + value.id in last_values){
-                      value = last_values[current_source + "-" + value.id]
+                      data_value = last_values[current_source + "-" + value.id]
                     }
                     $("#current-data").append(
                       "<div class=\"row\" id=\"row-" + current_source + "-" + value.id + "\">" +
-                      "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">" + value + "</div>" +
+                      "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">" + data_value + "</div>" +
                       "</div>"
                     ).html();
                     socket.emit("select_source_type", {source: current_source, type: value.id});
