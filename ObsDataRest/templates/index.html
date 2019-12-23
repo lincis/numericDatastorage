@@ -6,7 +6,6 @@
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
-    var socket;
         $(document).ready(function() {
           // Connect to the Socket.IO server.
           // The connection URL has the following format, relative to the current page:
@@ -30,7 +29,7 @@
                 $.each(data.Dates, function(key, value) {
                   // $("#data-type-select").append(new Option(value.data_type_name, value.data_type_id, true, true));
                   _source = {'id': value.data_source_id, 'name': value.data_source_name}
-                  _type = {'source_id': value.data_source_id, 'id': value.data_type_id, 'name': value.data_type_name}
+                  _type = {'source_id': value.data_source_id, 'id': value.data_type_id, 'name': value.data_type_name, 'last_val': new Date(value.max_date)}
                   if(-1 == $.inArray(_source, sources)) {
                     sources.push(_source)
                     $("#data-source-select").append(new Option(value.data_source_name, value.data_source_id, true, true));
@@ -68,7 +67,8 @@
           socket.on("new_data", function(msg) {
             console.log("new_data", msg)
             // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
-            $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + msg.entity_created)
+            obs_time = new Date(msg.entity_created + "Z")
+            $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
           })
         });
     </script>
@@ -78,7 +78,7 @@
     <h1>Observed data</h1>
     <div>
     <form id="data-def" method="POST" action="#">
-        <select name="data-source" id="data-source-select">
+        <select name="data-source" id="data-source-select" onChange="reloadData();">
         </select>
     </form></div>
     <div class="graph"></div>
