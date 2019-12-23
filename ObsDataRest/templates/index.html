@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Observed data</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
@@ -13,6 +14,8 @@
           socket = io("/datasocket");
 
           var plot_data = [];
+          var sources = [];
+          var types = [];
 
           // Event handler for new connections.
           // The callback function is invoked when a connection with the
@@ -22,24 +25,40 @@
               $.get("/data/dates", function (data) {
                 console.log("Got dates")
                 console.log(data)
+                $("#current-data").empty()
                 $("#data-source-select").empty()
-                $("#data-type-select").empty()
                 $.each(data.Dates, function(key, value) {
-                  $("#data-source-select").append(new Option(value.data_source_name, value.data_source_id, true, true));
-                  $("#data-type-select").append(new Option(value.data_type_name, value.data_type_id, true, true));
+                  // $("#data-type-select").append(new Option(value.data_type_name, value.data_type_id, true, true));
+                  _source = {'id': value.data_source_id, 'name': value.data_source_name}
+                  _type = {'source_id': value.data_source_id, 'id': value.data_type_id, 'name': value.data_type_name}
+                  if(-1 == $.inArray(_source, sources)) {
+                    sources.push(_source)
+                    $("#data-source-select").append(new Option(value.data_source_name, value.data_source_id, true, true));
+                  }
+                  types.push(_type)
                 })
-                $("#data-def").submit()
+                current_source = $("#data-source-select").val()
+                $.each(types, function(index, value){
+                  if(value.source_id == current_source) {
+                    $("#current-data").append(
+                      "<div class=\"row\">" +
+                      "<div class=\"col-sm-4\">" + value.name + "</div><div class=\"col-sm-8\" id=\"data-" + current_source + "-" + value.id + "\">Waiting for data</div>" +
+                      "</div>"
+                    );
+                    socket.emit("select_source_type", {source: current_source, type: value.id});
+                  }
+                })
               })
           });
 
           // Handlers for the different forms in the page.
           // These accept data from the user and send it to the server in a
           // variety of ways
-          $("form#data-def").submit(function(event) {
-            console.log("Source: ", $("#data-source-select").val(), "Type: ", $("#data-type-select").val())
-            socket.emit("select_source_type", {source: $("#data-source-select").val(), type: $("#data-type-select").val()});
-            return false;
-          });
+          // $("form#data-def").submit(function(event) {
+          //   console.log("Source: ", $("#data-source-select").val(), "Type: ", $("#data-type-select").val())
+          //   socket.emit("select_source_type", {source: $("#data-source-select").val(), type: $("#data-type-select").val()});
+          //   return false;
+          // });
 
           socket.on("nds_response", function(msg) {
             console.log("nds_response: ", msg)
@@ -48,19 +67,23 @@
 
           socket.on("new_data", function(msg) {
             console.log("new_data", msg)
-            $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
+            // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
+            $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + msg.entity_created)
           })
         });
     </script>
 </head>
 <body>
+  <div class="container">
     <h1>Observed data</h1>
+    <div>
     <form id="data-def" method="POST" action="#">
-        <select name="data-source" id="data-source-select" onchange="this.form.submit()">
+        <select name="data-source" id="data-source-select">
         </select>
-        <select name="data-type" id="data-type-select" onchange="this.form.submit()">
-        </select>
-    </form>
+    </form></div>
+    <div class="graph"></div>
     <div id="log"></div>
+    <div id="current-data"></div>
+  </div>
 </body>
 </html>
