@@ -28,6 +28,7 @@
           var plot_data = [];
           var sources = [];
           var types = [];
+          var last_values = {}
 
           // Event handler for new connections.
           // The callback function is invoked when a connection with the
@@ -39,6 +40,8 @@
               $.get("/data/dates", function (data) {
                 console.log("Got dates")
                 console.log(data)
+                types = []
+                sources = []
                 $.each(data.Dates, function(key, value) {
                   // $("#data-type-select").append(new Option(value.data_type_name, value.data_type_id, true, true));
                   _source = {'id': value.data_source_id, 'name': value.data_source_name}
@@ -52,10 +55,13 @@
                 current_source = $("#data-source-select").val()
                 $.each(types, function(index, value){
                   if(value.source_id == current_source) {
-                    $("#row-" + current_source + "-" + value.id).remove()
+                    value = 'Waiting for data'
+                    if(current_source + "-" + value.id in last_values){
+                      value = last_values[current_source + "-" + value.id]
+                    }
                     $("#current-data").append(
                       "<div class=\"row\" id=\"row-" + current_source + "-" + value.id + "\">" +
-                      "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">Waiting for data</div>" +
+                      "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">" + value + "</div>" +
                       "</div>"
                     ).html();
                     socket.emit("select_source_type", {source: current_source, type: value.id});
@@ -83,6 +89,7 @@
             // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
             obs_time = new Date(msg.entity_created + "Z")
             $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
+            last_values[msg.data_source_id + "-" + msg.data_type_id] = msg.value + " @ " + obs_time.toString()
           })
         });
     </script>
