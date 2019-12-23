@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Observed data</title>
+    <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+    <script type="text/javascript" charset="utf-8">
+    var socket;
+        $(document).ready(function() {
+          // Connect to the Socket.IO server.
+          // The connection URL has the following format, relative to the current page:
+          //     http[s]://<domain>:<port>[/<namespace>]
+          socket = io("/datasocket");
+
+          var plot_data = [];
+
+          // Event handler for new connections.
+          // The callback function is invoked when a connection with the
+          // server is established.
+          socket.on("connect", function() {
+              console.log("Connected to socket");
+              $.get("/data/dates", function (data) {
+                console.log("Got dates")
+                console.log(data)
+                $("#data-source-select").empty()
+                $("#data-type-select").empty()
+                $.each(data.Dates, function(key, value) {
+                  $("#data-source-select").append(new Option(value.data_source_name, value.data_source_id, true, true));
+                  $("#data-type-select").append(new Option(value.data_type_name, value.data_type_id, true, true));
+                })
+                $("#data-def").submit()
+              })
+          });
+
+          // Handlers for the different forms in the page.
+          // These accept data from the user and send it to the server in a
+          // variety of ways
+          $("form#data-def").submit(function(event) {
+            console.log("Source: ", $("#data-source-select").val(), "Type: ", $("#data-type-select").val())
+            socket.emit("select_source_type", {source: $("#data-source-select").val(), type: $("#data-type-select").val()});
+            return false;
+          });
+
+          socket.on("nds_response", function(msg) {
+            console.log("nds_response: ", msg)
+            // $("#log").append("<br>" + $("<div/>").text("NDS response: ", msg).html());
+          });
+
+          socket.on("new_data", function(msg) {
+            console.log("new_data", msg)
+            $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
+          })
+        });
+    </script>
+</head>
+<body>
+    <h1>Observed data</h1>
+    <form id="data-def" method="POST" action="#">
+        <select name="data-source" id="data-source-select" onchange="this.form.submit()">
+        </select>
+        <select name="data-type" id="data-type-select" onchange="this.form.submit()">
+        </select>
+    </form>
+    <div id="log"></div>
+</body>
+</html>

@@ -103,3 +103,4 @@ ENV/
 # database
 .database/
 .test.db
+*.sqlite3

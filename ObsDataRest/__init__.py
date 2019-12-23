@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all()
+
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
 from flask_sqlalchemy import SQLAlchemy, Model
@@ -9,6 +12,10 @@ from decimal import Decimal
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from flask_jwt_extended import JWTManager
+
+from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
+import gevent
+
 
 class RestModel(Model):
     def insert(self, commit = True):
@@ -82,6 +89,9 @@ db = SQLAlchemy(model_class = RestModel)
 db.init_app(app)
 jwt = JWTManager(app)
 
+socketio = SocketIO()
+socketio.init_app(app, async_mode = 'gevent', message_queue='redis://')
+
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     if app.config.get('SQLALCHEMY_DATABASE_URI', 'None').startswith('sqlite'):
@@ -92,3 +102,17 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 from .model import UserModel, DataSourcesModel, DataTypesModel, DataModel
 from .ObsDataRest import add_user
+
+class NDSNamespace(Namespace):
+    def on_connect(self):
+        print('Hell yeah')
+        emit('nds_response', {'data': 'Connected'})
+
+    def on_select_source_type(self, message):
+        print('Select data source')
+        print(message)
+        room = '/%s/%s' % (message['source'], message['type'])
+        join_room(room)
+        emit('nds_response', {'room': room})
+
+socketio.on_namespace(NDSNamespace('/datasocket'))

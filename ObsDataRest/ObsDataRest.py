@@ -2,13 +2,13 @@ import configparser
 import os
 from .model import UserModel, DataTypesModel, DataSourcesModel, DataModel
 
-from flask import request
+from flask import request, render_template
 from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
 from dateutil import parser
 
-from . import app, api, db
+from . import app, api, db, socketio
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
@@ -107,9 +107,20 @@ class Data(_ODRBase):
         response = []
         for json_entry in all_jsons:
             try:
-                response.append({'inserted': str(self._insert_one(json_entry))})
+                new_entry = self._insert_one(json_entry)
+                print(new_entry)
+                response.append({'inserted': str(new_entry)})
+                try:
+                    room = '/%s/%s' % (new_entry.data_source_id, new_entry.data_type_id)
+                    socketio.emit('new_data', new_entry.to_dict(self.cols), namespace = '/datasocket', room = room)
+                    logging.debug('emitted data to room `%s`' % room)
+                    print('emitted data to room `%s`' % room)
+                except:
+                    logging.error('%s.%s() cannot broadcast ' % (self.__class__.__name__, 'put'), exc_info = True)
+                    pass
             except IntegrityError:
                 response.append({'error': 'Integrity violated, either duplicate record or non-existent source / type for %s' % json_entry})
+                pass
             except:
                 logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
                 raise
@@ -195,3 +206,7 @@ def get_data_dates():
     return {
         'Dates': [{key: value.isoformat() if 'date' in key else value for key, value in row._asdict().items()} for row in results]
     }, 200
+
+@app.route('/')
+def index():
+    return render_template('index.html')
