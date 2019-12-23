@@ -1,9 +1,8 @@
-FROM tiangolo/uwsgi-nginx-flask:python3.7
+FROM python:latest
 RUN uname -a
 RUN apt-get update
 RUN apt-get -y --no-install-recommends install libpq-dev
-RUN apt-get -y --no-install-recommends install redis-server
-RUN update-rc.d -f redis-server enable
-RUN update-rc.d redis-server enable
+RUN apt-get -y --no-install-recommends install redis-server systemd
+RUN systemctl enable redis-server
 COPY . /app
-RUN pip install -r requirements.txt
+RUN pip install -r /app/requirements.txt

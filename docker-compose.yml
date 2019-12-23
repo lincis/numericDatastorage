@@ -43,6 +43,12 @@ services:
       - LANG=C.UTF-8
       - API_USER=${API_USER}
       - API_PW=${API_PW}
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
+      - FLASK_APP=/app/main.py
+    entrypoint:
+      - python3
+      - /app/main.py
 
 networks:
   default:
