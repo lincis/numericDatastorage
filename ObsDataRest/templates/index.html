@@ -12,12 +12,13 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
     function have_source(needle, haystack) {
+      var rv = false;
       $.each(haystack, function(index, value){
         if(needle.id == value.id){
-          return true
+          rv = true;
         }
       })
-      return false
+      return rv;
     }
         $(document).ready(function() {
           // Connect to the Socket.IO server.
