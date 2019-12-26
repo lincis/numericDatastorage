@@ -136,6 +136,7 @@ class Data(_ODRBase):
             .filter(self._model.data_source_id == _source)\
             .filter(self._model.entity_created >= parser.parse(_start_date))\
             .filter(self._model.entity_created <= parser.parse(_end_date))\
+            .order_by(DataModel.entity_created.asc())\
             .all()
         if not objs:
             return {'error': 'no matching items found for %s/%s in interval [%s, %s]' % (_source, _type, _start_date, _end_date)}, 404
