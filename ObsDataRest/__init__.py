@@ -112,6 +112,6 @@ class NDSNamespace(Namespace):
             .filter(DataModel.data_type_id == message['type'])\
             .filter(DataModel.data_source_id == message['source'])\
             .order_by(DataModel.entity_created.desc()).limit(1).all()
-        emit('new_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
+        emit('initial_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
 
 socketio.on_namespace(NDSNamespace('/datasocket'))

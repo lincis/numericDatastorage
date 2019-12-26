@@ -117,26 +117,28 @@
               })
           });
 
-          // Handlers for the different forms in the page.value.name + ", " + value.units
-          // These accept data from the user and send it to the server in a
-          // variety of ways
-          // $("form#data-def").submit(function(event) {
-          //   console.log("Source: ", $("#data-source-select").val(), "Type: ", $("#data-type-select").val())
-          //   socket.emit("select_source_type", {source: $("#data-source-select").val(), type: $("#data-type-select").val()});
-          //   return false;
-          // });
-
           socket.on("nds_response", function(msg) {
             console.log("nds_response: ", msg)
             // $("#log").append("<br>" + $("<div/>").text("NDS response: ", msg).html());
           });
 
-          socket.on("new_data", function(msg) {
-            console.log("new_data", msg)
+          function new_data_handler(msg, initial = false) {
+            console.log("new_data: ", msg, " initial = ", initial)
             // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
             obs_time = new Date(msg.entity_created + "Z")
             $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
             last_values[msg.data_source_id + "-" + msg.data_type_id] = msg.value + " @ " + obs_time.toString()
+            if(!initial) {
+              plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.push({x: obs_time, y: msg.value})
+              plots[msg.data_source_id + "-" + msg.data_type_id].update()
+            }
+          }
+
+          socket.on("new_data", function(msg) {
+            new_data_handler(msg, false)
+          })
+          socket.on("initial_data", function(msg) {
+            new_data_handler(msg, true)
           })
         });
     </script>
