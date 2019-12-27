@@ -36,7 +36,7 @@
       var ctx = document.getElementById("plot-" + source + "-" + type).getContext("2d");
       console.log(data_points)
       start = new Date(last_data_at.getTime());
-      start.setHours(start.getHours() - 12);
+      start.setHours(start.getHours() - 6);
       url = "/data/" + source + "/" + type + "/" + last_data_at.toISOString() + "/" + start.toISOString();
       console.log("URL = ", url)
       var dataChart;
@@ -158,6 +158,7 @@
             console.log(plots)
             if(!initial) {
               plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.push({x: obs_time, y: msg.value})
+              plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.shift()
               plots[msg.data_source_id + "-" + msg.data_type_id].update()
             }
           }
