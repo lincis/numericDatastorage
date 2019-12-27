@@ -31,7 +31,7 @@
     function initial_plot(source, type, last_data_at, title){
       var data_points = new Array()
       console.log(data_points)
-      $("#plots").append("<canvas id=\"plot-" + source + "-" + type + "\" width=\"400\" height=\"400\"></canvas>")
+      $("#plots").append("<div class=\"chartjs-wrapper\"><canvas id=\"plot-" + source + "-" + type + "\"></canvas></div>")
       console.log("<canvas id=\"plot-" + source + "-" + type + "\" width=\"400\" height=\"400\">&nbsp;</canvas>")
       var ctx = document.getElementById("plot-" + source + "-" + type).getContext("2d");
       console.log(data_points)
