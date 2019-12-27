@@ -16,8 +16,8 @@ Python REST interface for data r/w access
    :target: https://travis-ci.org/lincis/numericDatastorage
    :alt: Travis CI build status (Linux)
 
-.. |coverage| image:: https://coveralls.io/repos/github/lincis/numericDatastorage/badge.svg?branch=master
-   :target: https://coveralls.io/github/lincis/numericDatastorage?branch=master
+.. |coverage| image:: https://codecov.io/gh/lincis/numericDatastorage/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/lincis/numericDatastorage
    :alt: Code coverage
 
 .. |landscape| image:: https://landscape.io/github/lincis/numericDatastorage/master/landscape.svg?style=flat
