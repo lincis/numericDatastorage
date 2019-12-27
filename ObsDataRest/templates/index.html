@@ -5,13 +5,14 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
       .data {
-        font-size: 14pt;
+        font-size: 16pt;
       }
     </style>
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.bundle.min.js"></script>
     <script type="text/javascript" charset="utf-8">
+    var plots = [];
     function have_source(needle, haystack) {
       var rv = false;
       $.each(haystack, function(index, value){
@@ -46,9 +47,13 @@
                 }]
             },
             options: {
+                responsive: true,
                 scales: {
                     xAxes: [{
                         type: "time",
+                        ticks: {
+                            fontSize: 20
+                        },
                         time: {
                           units: "hours",
                           tooltipFormat: "ll HH:mm"
@@ -57,12 +62,25 @@
                           display: true,
                           labelString: "Date / time"
                         }
-                    }]
+                    }],
+                    yAxes: [{
+                      type: "linear",
+                        ticks: {
+                            fontSize: 20
+                        }
+                    }],
+                    legend: {
+                        labels: {
+                          fontSize: 20,
+                          fontColor: 'rgb(255, 0, 0)',
+                          display: true
+                        }
+                    }
                 }
             }
         });
+        plots[source + "-" + type] = dataChart;
       });
-      return dataChart;
     }
         $(document).ready(function() {
           // Connect to the Socket.IO server.
@@ -73,8 +91,7 @@
           var plot_data = [];
           var sources;
           var types;
-          var plots = {}
-          var last_values = []
+          var last_values = [];
 
           // Event handler for new connections.
           // The callback function is invoked when a connection with the
@@ -110,7 +127,7 @@
                       "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">" + data_value + "</div>" +
                       "</div>"
                     ).html();
-                    plots[current_source + "-" + value.id] = initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units);
+                    initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units);
                     socket.emit("select_source_type", {source: current_source, type: value.id});
                   }
                 })
@@ -128,6 +145,7 @@
             obs_time = new Date(msg.entity_created + "Z")
             $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
             last_values[msg.data_source_id + "-" + msg.data_type_id] = msg.value + " @ " + obs_time.toString()
+            console.log(plots)
             if(!initial) {
               plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.push({x: obs_time, y: msg.value})
               plots[msg.data_source_id + "-" + msg.data_type_id].update()
