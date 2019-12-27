@@ -7,12 +7,18 @@
       .data {
         font-size: 16pt;
       }
+      canvas {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+      }
     </style>
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.bundle.min.js"></script>
     <script type="text/javascript" charset="utf-8">
     var plots = [];
+    var color = Chart.helpers.color;
     function have_source(needle, haystack) {
       var rv = false;
       $.each(haystack, function(index, value){
@@ -43,7 +49,11 @@
             data: {
                 datasets: [{
                     label: title,
-                    data: data_points
+                    data: data_points,
+                    backgroundColor: color('rgb(54, 162, 235)').alpha(0.5).rgbString(),
+                    borderColor: color('rgb(54, 162, 235)').alpha(0.5).rgbString(),
+                    fill: false,
+                    pointRadius: 0
                 }]
             },
             options: {
