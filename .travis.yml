@@ -8,7 +8,7 @@ before_script:
   - psql -c 'create database travis_ci_test;' -U postgres
 install:
   - pip install -r requirements.txt
-  - pip install coverage==4.5.4 python-coveralls
+  - pip install codecov
 deploy:
   - provider: script
     skip_cleanup: true
@@ -16,7 +16,7 @@ deploy:
 script:
   - coverage run --source=ObsDataRest -m pytest .
 after_success:
-  - coveralls
+  - codecov
 before_install:
   - openssl aes-256-cbc -K $encrypted_9c98d1b39b99_key -iv $encrypted_9c98d1b39b99_iv
     -in deploy_rsa.enc -out deploy_rsa -d
