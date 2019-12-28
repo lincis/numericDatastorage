@@ -3,6 +3,7 @@
 <head>
     <title>Observed data</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/css/bootstrap-slider.min.css" integrity="sha256-G3IAYJYIQvZgPksNQDbjvxd/Ca1SfCDFwu2s2lt0oGo=" crossorigin="anonymous" />
     <style>
       .data {
         font-size: 16pt;
@@ -12,10 +13,17 @@
         -webkit-user-select: none;
         -ms-user-select: none;
       }
+      .tooltip.in {
+        opacity: 1;
+      }
+      #slider-wr {
+        margin-top: 20pt;
+      }
     </style>
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/bootstrap-slider.min.js" integrity="sha256-oj52qvIP5c7N6lZZoh9z3OYacAIOjsROAcZBHUaJMyw=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
     var plots = [];
     var color = Chart.helpers.color;
@@ -28,15 +36,13 @@
       })
       return rv;
     }
-    function initial_plot(source, type, last_data_at, title){
+    function initial_plot(source, type, last_data_at, title, hist_hours){
       var data_points = new Array()
       console.log(data_points)
       $("#plots").append("<div class=\"chartjs-wrapper\"><canvas id=\"plot-" + source + "-" + type + "\"></canvas></div>")
-      console.log("<canvas id=\"plot-" + source + "-" + type + "\" width=\"400\" height=\"400\">&nbsp;</canvas>")
       var ctx = document.getElementById("plot-" + source + "-" + type).getContext("2d");
-      console.log(data_points)
       start = new Date(last_data_at.getTime());
-      start.setHours(start.getHours() - 6);
+      start.setHours(start.getHours() - hist_hours);
       url = "/data/" + source + "/" + type + "/" + last_data_at.toISOString() + "/" + start.toISOString();
       console.log("URL = ", url)
       var dataChart;
@@ -92,16 +98,16 @@
         plots[source + "-" + type] = dataChart;
       });
     }
+    var plot_data = [];
+    var sources;
+    var types;
+    var last_values = [];
+
         $(document).ready(function() {
           // Connect to the Socket.IO server.
           // The connection URL has the following format, relative to the current page:
           //     http[s]://<domain>:<port>[/<namespace>]
           socket = io("/datasocket");
-
-          var plot_data = [];
-          var sources;
-          var types;
-          var last_values = [];
 
           // Event handler for new connections.
           // The callback function is invoked when a connection with the
@@ -124,7 +130,7 @@
                     $("#data-source-select").append(new Option(value.data_source_name, value.data_source_id, true, true));
                   }
                   types.push(_type)
-                })
+                });
                 current_source = $("#data-source-select").val()
                 $.each(types, function(index, value){
                   if(value.source_id == current_source) {
@@ -137,11 +143,11 @@
                       "<div class=\"col-sm-4 data\">" + value.name + ", " + value.units + "</div><div class=\"col-sm-8 data\" id=\"data-" + current_source + "-" + value.id + "\">" + data_value + "</div>" +
                       "</div>"
                     ).html();
-                    initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units);
+                    initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units, $("#hist-hours").val());
                     socket.emit("select_source_type", {source: current_source, type: value.id});
                   }
-                })
-              })
+                });
+              });
           });
 
           socket.on("nds_response", function(msg) {
@@ -165,10 +171,28 @@
 
           socket.on("new_data", function(msg) {
             new_data_handler(msg, false)
-          })
+          });
           socket.on("initial_data", function(msg) {
             new_data_handler(msg, true)
-          })
+          });
+
+          $("#hist-hours").slider({
+            tooltip: 'always'
+          });
+
+          var wto;
+          $("#hist-hours").change(function() {
+            clearTimeout(wto);
+            wto = setTimeout(function() {
+              current_source = $("#data-source-select").val()
+              $("#plots").empty();
+              $.each(types, function(index, value){
+                if(value.source_id == current_source) {
+                  initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units, $("#hist-hours").val());
+                }
+              });
+            }, 1000);
+          });
         });
     </script>
 </head>
@@ -181,6 +205,9 @@
         </select>
     </form></div>
     <div id="current-data"></div>
+    <div id="slider-wr" class="data">
+      History length (hours) <input id="hist-hours" data-slider-id='hist-hours-slider' type="text" data-slider-min="1" data-slider-max="48" data-slider-step="1" data-slider-value="6"/>
+    </div>
     <div id="plots"></div>
     <div id="log"></div>
   </div>
