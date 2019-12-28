@@ -108,13 +108,13 @@ class Data(_ODRBase):
         for json_entry in all_jsons:
             try:
                 new_entry = self._insert_one(json_entry)
-                print(new_entry)
+                # print(new_entry)
                 response.append({'inserted': str(new_entry)})
                 try:
                     room = '/%s/%s' % (new_entry.data_source_id, new_entry.data_type_id)
                     socketio.emit('new_data', new_entry.to_dict(self.cols), namespace = '/datasocket', room = room)
                     logging.debug('emitted data to room `%s`' % room)
-                    print('emitted data to room `%s`' % room)
+                    # print('emitted data to room `%s`' % room)
                 except:
                     logging.error('%s.%s() cannot broadcast ' % (self.__class__.__name__, 'put'), exc_info = True)
                     pass

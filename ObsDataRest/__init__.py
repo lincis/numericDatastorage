@@ -12,6 +12,8 @@ from flask_jwt_extended import JWTManager
 
 from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
 
+import os
+
 class RestModel(Model):
     def insert(self, commit = True):
         db.session.add(self)
@@ -85,7 +87,7 @@ db.init_app(app)
 jwt = JWTManager(app)
 
 socketio = SocketIO(cors_allowed_origins = '*')
-socketio.init_app(app, async_mode = 'eventlet', message_queue='redis://')
+socketio.init_app(app, async_mode = 'eventlet', message_queue = os.getenv('SIO_QUEUE', None))
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -100,18 +102,17 @@ from .ObsDataRest import add_user
 
 class NDSNamespace(Namespace):
     def on_connect(self):
-        print('Hell yeah')
         emit('nds_response', {'data': 'Connected'})
 
     def on_select_source_type(self, message):
-        print('Select data source')
-        print(message)
         room = '/%s/%s' % (message['source'], message['type'])
+        # print('Join room %s' % room)
         join_room(room)
         last_entry = db.session.query(DataModel)\
             .filter(DataModel.data_type_id == message['type'])\
             .filter(DataModel.data_source_id == message['source'])\
             .order_by(DataModel.entity_created.desc()).limit(1).all()
-        emit('initial_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
+        if len(last_entry):
+            emit('initial_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
 
 socketio.on_namespace(NDSNamespace('/datasocket'))

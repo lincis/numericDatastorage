@@ -4,7 +4,7 @@ import uuid
 import random
 from dateutil import parser
 from datetime import timedelta
-from ObsDataRest import app, db, add_user
+from ObsDataRest import app, db, add_user, socketio
 import math
 source_id = str(uuid.uuid4())
 type_id = str(uuid.uuid4())
@@ -116,6 +116,12 @@ class TestData:
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put(self, src, typ, token):
+        sio_client = socketio.test_client(app, namespace = '/datasocket')
+        assert(sio_client.is_connected())
+        sio_client.emit('select_source_type', {'source': src, 'type': typ}, namespace = '/datasocket')
+        received = sio_client.get_received('/datasocket')
+        assert len(received) in (1,2)
+        assert received[0]['args'][0]['data'] == 'Connected'
         r = self.client.put('/data',
             data = json.dumps({'Data': [{ 'value': 25.5, 'data_type_id': typ, 'data_source_id': src },]}),
             content_type = 'application/json',
@@ -125,14 +131,27 @@ class TestData:
         r_data = json.loads(r.data.decode('utf-8'))
         assert 'results' in r_data
         assert len(r_data['results']) == 1
+        received = sio_client.get_received('/datasocket')
         if 'Junk' in [src, typ] or not (src and typ):
             assert 'error' in r_data['results'][0]
+            assert len(received) == 0
         else:
             assert 'inserted' in r_data['results'][0]
+            assert len(received) == 1
+            assert received[0]['name'] == 'new_data'
+            assert received[0]['args'][0]['data_source_id'] == src
+            assert received[0]['args'][0]['data_type_id'] == typ
+            assert received[0]['args'][0]['value'] == 25.5
 
     @pytest.mark.parametrize('src', (src_1, src_2, '', 'Junk'))
     @pytest.mark.parametrize('typ', (type_1, type_2, '', 'Junk'))
     def test_data_put_bulk(self, src, typ, token):
+        sio_client = socketio.test_client(app, namespace = '/datasocket')
+        assert(sio_client.is_connected())
+        sio_client.emit('select_source_type', {'source': src, 'type': typ}, namespace = '/datasocket')
+        received = sio_client.get_received('/datasocket')
+        assert len(received) in (1,2)
+        assert received[0]['args'][0]['data'] == 'Connected'
         payload = []
         for o in zip([random_datetime('2017-01-01T00:00', 365) for i in range(n)], [random.uniform(1,100) for i in range(n)]):
             payload.append({'data_type_id': typ, 'data_source_id': src, 'entity_created': o[0], 'value': o[1]})
@@ -143,10 +162,19 @@ class TestData:
         r_data = json.loads(r.data.decode('utf-8'))
         assert 'results' in r_data
         assert len(r_data['results']) == n
+        received = sio_client.get_received('/datasocket')
         if 'Junk' in [src, typ] or not (src and typ):
             assert 'error' in r_data['results'][0]
+            assert len(received) == 0
         else:
             assert 'inserted' in r_data['results'][0]
+            assert len(received) == n
+            for i in range(5):
+                assert received[i]['name'] == 'new_data'
+                assert received[i]['args'][0]['data_source_id'] == src
+                assert received[i]['args'][0]['data_type_id'] == typ
+                assert received[i]['args'][0]['value'] == pytest.approx(payload[i]['value'])
+                assert received[i]['args'][0]['entity_created'] == payload[i]['entity_created']
 
     @pytest.mark.last
     def test_dates(self):
