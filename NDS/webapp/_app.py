@@ -68,30 +68,34 @@ class _ODRBase(Resource):
         else:
             return {self.__class__.__name__: []}, 404
 
+    def _put_entry(self, _id, req_json):
+        if _id:
+            entry = self._model.get(_id)
+        else:
+            entry = None
+        if entry:
+            for col in self.cols:
+                value = req_json.get(col, None)
+                if value:
+                    setattr(entry, col, value)
+            entry.update()
+            rc = 201
+        else:
+            if 'id' not in req_json:
+                req_json['id'] = _id
+            entry = self._model.from_dict(req_json)
+            entry.insert()
+            rc = 200
+        return (entry, rc)
+
+
     @jwt_required
     def put(self, _id = None):
         logging.info('%s.%s(%s, %s)' % (self.__class__.__name__, 'put', _id, request.json))
         if not _id:
             return 'Please specify ID', 405
         try:
-            if _id:
-                entry = self._model.get(_id)
-            else:
-                entry = None
-            if entry:
-                for col in self.cols:
-                    value = request.json.get(col, None)
-                    if value:
-                        setattr(entry, col, value)
-                entry.update()
-                rc = 201
-            else:
-                logging.debug('ID: %s' % _id)
-                if 'id' not in request.json:
-                    request.json['id'] = _id
-                entry = self._model.from_dict(request.json)
-                entry.insert()
-                rc = 200
+            entry, rc = self._put_entry(_id, request.json)
         except:
             logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
             raise
@@ -133,14 +137,8 @@ class Data(_ODRBase):
                 new_entry = self._insert_one(json_entry)
                 # print(new_entry)
                 response.append({'inserted': str(new_entry)})
-                try:
-                    room = '/%s/%s' % (new_entry.data_source_id, new_entry.data_type_id)
-                    socketio.emit('new_data', new_entry.to_dict(self.cols), namespace = '/datasocket', room = room)
-                    logging.debug('emitted data to room `%s`' % room)
-                    # print('emitted data to room `%s`' % room)
-                except:
-                    logging.error('%s.%s() cannot broadcast ' % (self.__class__.__name__, 'put'), exc_info = True)
-                    pass
+                room = '/%s/%s' % (new_entry.data_source_id, new_entry.data_type_id)
+                socketio.emit('new_data', new_entry.to_dict(self.cols), namespace = '/datasocket', room = room)
             except IntegrityError:
                 response.append({'error': 'Integrity violated, either duplicate record or non-existent source / type for %s' % json_entry})
             except:

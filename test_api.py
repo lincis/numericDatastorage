@@ -168,15 +168,15 @@ class TestData:
         if 'Junk' in [src, typ] or not (src and typ):
             assert 'error' in r_data['results'][0]
             assert len(received) == 0
-        else:
-            assert 'inserted' in r_data['results'][0]
-            assert len(received) == n
-            for i in range(5):
-                assert received[i]['name'] == 'new_data'
-                assert received[i]['args'][0]['data_source_id'] == src
-                assert received[i]['args'][0]['data_type_id'] == typ
-                assert received[i]['args'][0]['value'] == pytest.approx(payload[i]['value'])
-                assert received[i]['args'][0]['entity_created'] == payload[i]['entity_created']
+            return
+        assert 'inserted' in r_data['results'][0]
+        assert len(received) == n
+        for i in range(5):
+            assert received[i]['name'] == 'new_data'
+            assert received[i]['args'][0]['data_source_id'] == src
+            assert received[i]['args'][0]['data_type_id'] == typ
+            assert received[i]['args'][0]['value'] == pytest.approx(payload[i]['value'])
+            assert received[i]['args'][0]['entity_created'] == payload[i]['entity_created']
 
     @pytest.mark.last
     def test_dates(self):
@@ -211,11 +211,10 @@ class TestData:
         data = json.loads(r.data.decode('utf-8'))['Data']
         dt_start_date = parser.parse(start_date)
         dt_end_date = parser.parse(end_date)
-        if dt_start_date < parser.parse('2019-01-01'):
-            if dt_end_date < parser.parse('2999-01-01'):
-                assert len(data) == n
-            else:
-                assert len(data) == n + 1
+        if dt_end_date < parser.parse('2999-01-01'):
+            assert len(data) == n
+        elif dt_start_date < parser.parse('2019-01-01'):
+            assert len(data) == n + 1
         else:
             assert len(data) == 1
             assert math.isclose(data[0]['value'], 25.5)
