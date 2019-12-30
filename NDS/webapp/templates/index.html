@@ -2,12 +2,14 @@
 <html>
 <head>
     <title>Observed data</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/css/bootstrap-slider.min.css" integrity="sha256-G3IAYJYIQvZgPksNQDbjvxd/Ca1SfCDFwu2s2lt0oGo=" crossorigin="anonymous" />
     <style>
-      .data {
+      /* .data {
         font-size: 16pt;
-      }
+      } */
       canvas {
         -moz-user-select: none;
         -webkit-user-select: none;
@@ -39,7 +41,7 @@
     function initial_plot(source, type, last_data_at, title, hist_hours){
       var data_points = new Array()
       console.log(data_points)
-      $("#plots").append("<div class=\"chartjs-wrapper\"><canvas id=\"plot-" + source + "-" + type + "\"></canvas></div>")
+      $("#plots").append("<div class=\"chartjs-wrapper\" dir=><canvas id=\"plot-" + source + "-" + type + "\"></canvas></div>")
       var ctx = document.getElementById("plot-" + source + "-" + type).getContext("2d");
       start = new Date(last_data_at.getTime());
       start.setHours(start.getHours() - hist_hours);
@@ -67,12 +69,14 @@
                 scales: {
                     xAxes: [{
                         type: "time",
-                        ticks: {
-                            fontSize: 20
-                        },
                         time: {
-                          units: "hours",
-                          tooltipFormat: "ll HH:mm"
+                        parser: "HH:mm",
+                        unit: 'hour',
+                        unitStepSize: 1,
+                        displayFormats: {
+                          'minute': 'HH:mm',
+                          'hour': 'HH:mm'
+                        }
                         },
                         scaleLabel: {
                           display: true,
@@ -81,19 +85,32 @@
                     }],
                     yAxes: [{
                       type: "linear",
-                        ticks: {
-                            fontSize: 20
+                      afterFit: function(scale) {
+                        var chartWidth = scale.chart.width;
+                        var new_width = chartWidth * 0.05;
+                        scale.width = new_width;
                         }
                     }]
                 },
                 legend: {
                     labels: {
-                      fontSize: 20,
                       display: true
                     }
                 }
 
-            }
+            },
+            plugins: [{
+                /* Adjust axis labelling font size according to chart size */
+                beforeDraw: function(c) {
+                    var chartHeight = c.chart.height;
+                    var size = chartHeight * 4 / 100;
+                    c.scales['y-axis-0'].options.ticks.minor.fontSize = size;
+                    c.scales['y-axis-0'].options.scaleLabel.fontSize = size;
+                    c.scales['x-axis-0'].options.ticks.minor.fontSize = size;
+                    c.scales['x-axis-0'].options.scaleLabel.fontSize = size;
+                    c.options.legend.labels.fontSize = size;
+                }
+            }]
         });
         plots[source + "-" + type] = dataChart;
       });
