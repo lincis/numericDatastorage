@@ -1,7 +1,9 @@
 import eventlet
 eventlet.monkey_patch()
 
-from ObsDataRest import app, socketio, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
+from NDS.webapp import app, socketio
+from NDS.database import db
+from NDS.model import UserModel
 from sqlalchemy.exc import IntegrityError
 import os
 import subprocess

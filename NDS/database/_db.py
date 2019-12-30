@@ -1,18 +1,7 @@
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
 from flask_sqlalchemy import SQLAlchemy, Model
-from .config import Config
 from sqlalchemy import inspect
 from datetime import datetime
 from decimal import Decimal
-
-from sqlalchemy.engine import Engine
-from sqlalchemy import event
-from flask_jwt_extended import JWTManager
-
-from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
-
-import os
 
 class RestModel(Model):
     def insert(self, commit = True):
@@ -79,40 +68,4 @@ class RestModel(Model):
         db.session.commit()
         return True
 
-app = Flask(__name__)
-app.config.from_object(Config)
-api = Api(app)
 db = SQLAlchemy(model_class = RestModel)
-db.init_app(app)
-jwt = JWTManager(app)
-
-socketio = SocketIO(cors_allowed_origins = '*')
-socketio.init_app(app, async_mode = 'eventlet', message_queue = os.getenv('SIO_QUEUE', None))
-
-@event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    if app.config.get('SQLALCHEMY_DATABASE_URI', 'None').startswith('sqlite'):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-
-from .model import UserModel, DataSourcesModel, DataTypesModel, DataModel
-from .ObsDataRest import add_user
-
-class NDSNamespace(Namespace):
-    def on_connect(self):
-        emit('nds_response', {'data': 'Connected'})
-
-    def on_select_source_type(self, message):
-        room = '/%s/%s' % (message['source'], message['type'])
-        # print('Join room %s' % room)
-        join_room(room)
-        last_entry = db.session.query(DataModel)\
-            .filter(DataModel.data_type_id == message['type'])\
-            .filter(DataModel.data_source_id == message['source'])\
-            .order_by(DataModel.entity_created.desc()).limit(1).all()
-        if len(last_entry):
-            emit('initial_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
-
-socketio.on_namespace(NDSNamespace('/datasocket'))

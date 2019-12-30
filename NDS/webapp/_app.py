@@ -1,6 +1,6 @@
 import configparser
 import os
-from .model import UserModel, DataTypesModel, DataSourcesModel, DataModel
+from ..model import UserModel, DataTypesModel, DataSourcesModel, DataModel
 
 from flask import request, render_template
 from flask_restful import Resource, Api, reqparse
@@ -8,11 +8,40 @@ import logging
 from datetime import datetime
 from dateutil import parser
 
-from . import app, api, db, socketio
+from ..database import db
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from flask_jwt_extended import create_access_token, jwt_required
+from flask import Flask
+from flask_restful import Resource, Api, reqparse
+from .config import Config
+
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
+from flask_jwt_extended import JWTManager
+
+from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
+
+import os
+
+
+app = Flask(__name__)
+app.config.from_object(Config)
+api = Api(app)
+db.init_app(app)
+jwt = JWTManager(app)
+
+socketio = SocketIO(cors_allowed_origins = '*')
+socketio.init_app(app, async_mode = 'eventlet', message_queue = os.getenv('SIO_QUEUE', None))
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if app.config.get('SQLALCHEMY_DATABASE_URI', 'None').startswith('sqlite'):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 logging.basicConfig(
     filename = app.config.get('logfile'),
@@ -144,11 +173,6 @@ class Data(_ODRBase):
             return {'error': 'no matching items found for %s/%s in interval [%s, %s]' % (_source, _type, _start_date, _end_date)}, 404
         return {self.__class__.__name__: [obj.to_dict(self.cols) for obj in objs]}, 200
 
-def add_user(username, password):
-    user = UserModel(username = username)
-    user.set_password(password)
-    user.insert()
-
 class Authorize(Resource):
     def post(self):
         current_user = UserModel.find_by_username(request.json.get('username', None))
@@ -211,3 +235,20 @@ def get_data_dates():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+class NDSNamespace(Namespace):
+    def on_connect(self):
+        emit('nds_response', {'data': 'Connected'})
+
+    def on_select_source_type(self, message):
+        room = '/%s/%s' % (message['source'], message['type'])
+        # print('Join room %s' % room)
+        join_room(room)
+        last_entry = db.session.query(DataModel)\
+            .filter(DataModel.data_type_id == message['type'])\
+            .filter(DataModel.data_source_id == message['source'])\
+            .order_by(DataModel.entity_created.desc()).limit(1).all()
+        if len(last_entry):
+            emit('initial_data', last_entry[0].to_dict(DataModel.columns()), namespace = '/datasocket', room = room)
+
+socketio.on_namespace(NDSNamespace('/datasocket'))

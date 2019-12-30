@@ -1,4 +1,6 @@
-# from ObsDataRest import app, db, UserModel, DataModel, DataTypesModel, DataSourcesModel
+# from NDS.webapp import app
+# from NDS.database import db
+# from NDS.model import UserModel, DataModel, DataTypesModel, DataSourcesModel
 # from sqlalchemy.exc import IntegrityError
 # import os
 # from datetime import datetime

@@ -4,7 +4,9 @@ import uuid
 import random
 from dateutil import parser
 from datetime import timedelta
-from ObsDataRest import app, db, add_user, socketio
+from NDS.webapp import app, socketio
+from NDS.database import db
+from NDS.model import add_user
 import math
 source_id = str(uuid.uuid4())
 type_id = str(uuid.uuid4())
