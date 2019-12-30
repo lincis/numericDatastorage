@@ -143,7 +143,6 @@ class Data(_ODRBase):
                     pass
             except IntegrityError:
                 response.append({'error': 'Integrity violated, either duplicate record or non-existent source / type for %s' % json_entry})
-                pass
             except:
                 logging.error('%s.%s() failed' % (self.__class__.__name__, 'put'), exc_info = True)
                 raise

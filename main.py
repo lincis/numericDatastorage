@@ -16,5 +16,4 @@ if __name__ == '__main__':
             user.insert()
         except IntegrityError:
             print("Default user already exists")
-            pass
     socketio.run(app, debug = os.environ.get('FLASK_DEBUG', False), host = '0.0.0.0')
