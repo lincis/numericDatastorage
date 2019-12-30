@@ -78,10 +78,6 @@
                             'hour': 'HH:mm'
                           }
                         },
-                        scaleLabel: {
-                          display: true,
-                          labelString: "Date / time"
-                        },
                         afterFit: function(scale) {
                           var chartHeight = scale.chart.height;
                           var new_height = chartHeight * 0.15;
@@ -110,9 +106,7 @@
                     var chartHeight = c.chart.height;
                     var size = chartHeight * 5 / 100;
                     c.scales['y-axis-0'].options.ticks.minor.fontSize = size;
-                    c.scales['y-axis-0'].options.scaleLabel.fontSize = size;
                     c.scales['x-axis-0'].options.ticks.minor.fontSize = size;
-                    c.scales['x-axis-0'].options.scaleLabel.fontSize = size;
                     c.options.legend.labels.fontSize = size;
                 }
             }]
