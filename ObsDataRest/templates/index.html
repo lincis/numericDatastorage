@@ -136,7 +136,7 @@
                   if(value.source_id == current_source) {
                     data_value = "Waiting for data"
                     if(current_source + "-" + value.id in last_values){
-                      data_value = last_values[current_source + "-" + value.id]
+                      data_value = last_values[current_source + "-" + value.id].value + " @ " + last_values[current_source + "-" + value.id].time.toString()
                     }
                     $("#current-data").append(
                       "<div class=\"row\" id=\"row-" + current_source + "-" + value.id + "\">" +
@@ -160,8 +160,8 @@
             // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
             obs_time = new Date(msg.entity_created + "Z")
             $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
-            last_values[msg.data_source_id + "-" + msg.data_type_id] = msg.value + " @ " + obs_time.toString()
-            console.log(plots)
+            last_values[msg.data_source_id + "-" + msg.data_type_id] = {value: msg.value, time: obs_time}
+            // console.log(plots)
             if(!initial) {
               plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.push({x: obs_time, y: msg.value})
               plots[msg.data_source_id + "-" + msg.data_type_id].data.datasets[0].data.shift()
@@ -188,7 +188,7 @@
               $("#plots").empty();
               $.each(types, function(index, value){
                 if(value.source_id == current_source) {
-                  initial_plot(current_source, value.id, value.last_val, value.name + ", " + value.units, $("#hist-hours").val());
+                  initial_plot(current_source, value.id, last_values[current_source + "-" + value.id].time, value.name + ", " + value.units, $("#hist-hours").val());
                 }
               });
             }, 1000);
