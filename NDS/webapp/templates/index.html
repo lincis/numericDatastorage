@@ -70,24 +70,29 @@
                     xAxes: [{
                         type: "time",
                         time: {
-                        parser: "HH:mm",
-                        unit: 'hour',
-                        unitStepSize: 1,
-                        displayFormats: {
-                          'minute': 'HH:mm',
-                          'hour': 'HH:mm'
-                        }
+                          parser: "HH:mm",
+                          unit: 'hour',
+                          unitStepSize: 1,
+                          displayFormats: {
+                            'minute': 'HH:mm',
+                            'hour': 'HH:mm'
+                          }
                         },
                         scaleLabel: {
                           display: true,
                           labelString: "Date / time"
-                        }
+                        },
+                        afterFit: function(scale) {
+                          var chartHeight = scale.chart.height;
+                          var new_height = chartHeight * 0.15;
+                          scale.height = new_height;
+                          }
                     }],
                     yAxes: [{
                       type: "linear",
                       afterFit: function(scale) {
                         var chartWidth = scale.chart.width;
-                        var new_width = chartWidth * 0.05;
+                        var new_width = chartWidth * 0.1;
                         scale.width = new_width;
                         }
                     }]
@@ -103,7 +108,7 @@
                 /* Adjust axis labelling font size according to chart size */
                 beforeDraw: function(c) {
                     var chartHeight = c.chart.height;
-                    var size = chartHeight * 4 / 100;
+                    var size = chartHeight * 5 / 100;
                     c.scales['y-axis-0'].options.ticks.minor.fontSize = size;
                     c.scales['y-axis-0'].options.scaleLabel.fontSize = size;
                     c.scales['x-axis-0'].options.ticks.minor.fontSize = size;
