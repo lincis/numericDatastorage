@@ -6,7 +6,6 @@ from NDS.database import db
 from NDS.model import UserModel
 from sqlalchemy.exc import IntegrityError
 import os
-import subprocess
 
 if __name__ == '__main__':
     with app.app_context():

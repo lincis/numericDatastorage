@@ -1,29 +1,23 @@
-import configparser
 import os
-from ..model import UserModel, DataTypesModel, DataSourcesModel, DataModel
 
-from flask import request, render_template
-from flask_restful import Resource, Api, reqparse
 import logging
 from datetime import datetime
 from dateutil import parser
 
-from ..database import db
-from sqlalchemy import func
+from sqlalchemy import func, event
 from sqlalchemy.exc import IntegrityError
-
-from flask_jwt_extended import create_access_token, jwt_required
-from flask import Flask
-from flask_restful import Resource, Api, reqparse
-from .config import Config
-
 from sqlalchemy.engine import Engine
-from sqlalchemy import event
+
+from flask import request, render_template, Flask
+from flask_restful import Resource, Api
+from flask_jwt_extended import create_access_token, jwt_required
 from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO, Namespace, emit, join_room
 
-from flask_socketio import SocketIO, Namespace, emit, join_room, leave_room
+from ..model import UserModel, DataTypesModel, DataSourcesModel, DataModel
+from ..database import db
 
-import os
+from .config import Config
 
 
 app = Flask(__name__)
@@ -108,7 +102,7 @@ class _ODRBase(Resource):
         logging.info('%s.%s(%s)' % (self.__class__.__name__, 'delete', _id))
         item = self._model.get(_id)
         if not item:
-            return {'error': 'No entry with ID %s' % _is}, 404
+            return {'error': 'No entry with ID %s' % _id}, 404
         else:
             self._model.delete(_id)
             return {'deleted': str(item)}, 200
