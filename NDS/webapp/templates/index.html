@@ -26,6 +26,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/10.6.2/bootstrap-slider.min.js" integrity="sha256-oj52qvIP5c7N6lZZoh9z3OYacAIOjsROAcZBHUaJMyw=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-dateFormat/1.0/jquery.dateFormat.min.js" integrity="sha256-YVu3IT7nGTfxru7MQiv/TgOnffsbPuvXHRXuw1KzxWc=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
     var plots = [];
     var color = Chart.helpers.color;
@@ -152,7 +153,7 @@
                   if(value.source_id == current_source) {
                     data_value = "Waiting for data"
                     if(current_source + "-" + value.id in last_values){
-                      data_value = last_values[current_source + "-" + value.id].value + " @ " + last_values[current_source + "-" + value.id].time.toString()
+                      data_value = last_values[current_source + "-" + value.id].value + " @ " + $.format.date(last_values[current_source + "-" + value.id], "dd MMM HH:mm")
                     }
                     $("#current-data").append(
                       "<div class=\"row\" id=\"row-" + current_source + "-" + value.id + "\">" +
@@ -175,7 +176,7 @@
             console.log("new_data: ", msg, " initial = ", initial)
             // $("#log").append("<br>" + $("<div/>").text("New.data: (" + msg.data_source_id + "|" + msg.data_type_id + ":" + msg.entity_created + ") = " + msg.value).html());
             obs_time = new Date(msg.entity_created + "Z")
-            $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + obs_time.toString())
+            $("#data-" + msg.data_source_id + "-" + msg.data_type_id).html(msg.value + " @ " + $.format.date(obs_time, "dd MMM HH:mm"))
             last_values[msg.data_source_id + "-" + msg.data_type_id] = {value: msg.value, time: obs_time}
             // console.log(plots)
             if(!initial) {
