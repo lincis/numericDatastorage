@@ -204,7 +204,7 @@ def get_data_dates():
         DataModel.data_source_id, DataModel.data_type_id,
         func.max(DataModel.entity_created).label('max_date'), func.min(DataModel.entity_created).label('min_date')
     ).group_by(DataModel.data_source_id, DataModel.data_type_id).subquery()
-    logging.debug(subquery)
+    # logging.debug(subquery)
     final_query = db.session.query(
         DataSourcesModel.name.label('data_source_name')
         , DataSourcesModel.description.label('data_source_description')
@@ -216,7 +216,7 @@ def get_data_dates():
         subquery
     ).join(DataSourcesModel, DataSourcesModel.id == subquery.c.data_source_id).join(
         DataTypesModel, DataTypesModel.id == subquery.c.data_type_id
-    ).subquery()
+    ).order_by(DataSourcesModel.name.asc(), DataTypesModel.name.asc()).subquery()
     results = db.session.query(final_query).all()
     logging.debug('%s.%s() = %s' % ('Data', 'get_dates', results))
     return {
